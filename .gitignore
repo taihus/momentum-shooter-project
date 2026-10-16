@@ -54,3 +54,18 @@ build-iPhoneSimulator/
 
 # Used by RuboCop. Remote config files pulled in from inherit_from directive.
 # .rubocop-https?--*
+dragonruby
+dragonruby.exe
+dragonruby-publish
+dragonruby-publish.exe
+dragonruby-bind
+dragonruby-bind.exe
+/tmp/
+/builds/
+/logs/
+/samples/
+/docs/
+/.dragonruby/
+CHANGELOG-CURR.txt
+CHANGELOG-PREV.txt
+open-source-licenses.txt
