@@ -1,4 +1,5 @@
 # Using samples/99_genre_arcade/twinstick as a starting point
+# samples/07_simple_camera
 class Game
   attr_dr
 
@@ -9,6 +10,8 @@ class Game
   end
 
   def reset_game
+    @world  = { w: 1280, h: 720 }
+    @camera = { x: 640, y: 300, scale: 1.0 }
     @player = { x: 600, y: 320, w: 80, h: 80,
                 path: 'sprites/circle/solid.png',
                 vx: 0,
@@ -42,10 +45,6 @@ class Game
   end
 
   def render
-    outputs.background_color = [30, 30, 30]
-
-    outputs.primitives << [@player, @enemies, @bullets]
-
     progress_bar = Geometry.rect(
       x: @player.x + 40,
       y: @player.y + 80 + 32,
@@ -58,9 +57,23 @@ class Game
     health_area = Geometry.zoom_rect(rect: progress_bar, px: -8)
     current_health = { **health_area, w: health_area.w * @player.health_perc }
 
-    outputs.primitives << progress_bar
-    outputs.primitives << health_area.merge(r: 255, g: 255, b: 255, path: :solid)
-    outputs.primitives << current_health.merge(r: 80, g: 155, b: 80, path: :solid)
+    outputs[:scene].primitives << progress_bar
+    outputs[:scene].primitives << health_area.merge(r: 255, g: 255, b: 255, path: :solid)
+    outputs[:scene].primitives << current_health.merge(r: 80, g: 155, b: 80, path: :solid)
+
+    outputs[:scene].background_color = [30, 30, 30]
+
+    outputs[:scene].primitives << [@player, @enemies, @bullets]
+
+    outputs[:scene].w = @world.w
+    outputs[:scene].h = @world.h
+
+    scene_position = calc_scene_position args
+    args.outputs.sprites << { x: scene_position.x,
+                            y: scene_position.y,
+                            w: scene_position.w,
+                            h: scene_position.h,
+                            path: :scene }
 
     # if DR.platform?(:touch)
     #   outputs.primitives << { x: 640, y: 720, text: "Finger on left side of screen to move. Finger on right side of screen to shoot.", anchor_x: 0.5, anchor_y: 1.5, r: 255, g: 255, b: 255 }
@@ -76,6 +89,16 @@ class Game
 
   def health_progress_bar_primitives
 
+  end
+
+  def calc_scene_position args
+    result = { x: @camera.x - (@player.x * @camera.scale),
+              y: @camera.y - (@player.y * @camera.scale),
+              w: @world.w * @camera.scale,
+              h: @world.h * @camera.scale,
+              scale: @camera.scale }
+
+    return result
   end
 
   def spawn_enemies

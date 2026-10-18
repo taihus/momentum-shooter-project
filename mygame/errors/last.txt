@@ -1,18 +1,9 @@
 * EXCEPTION:
-* ERROR: :mouse method missing on ~Game~.
-
-#+begin_src ~Game#inspect~
-#<Game:0x2d57ebc9210 @enemies=[{:x=>-173.8108417051072, :y=>512.932711740735, :w=>80, :h=>80, :path=>"sprites/circle/solid.png", :r=>152, :g=>157, :b=>248}], @inputs=#<GTK::Inputs:0x2d56c8ea300>, @player={:x=>600.0, :y=>320.0, :w=>80, :h=>80, :path=>"sprites/circle/solid.png", :vx=>0.0, :vy=>0.0, :health=>10, :health_perc=>1.0, :cooldown=>-1, :score=>0}, @bullets=[], @outputs=#<GTK::TopLevelOutputs:0x2d56c8e5800>, @spawn_timer=120, @args=#<GTK::Args:0x2d56c8ea360>>
-#+end_src ~Game#inspect~
+* ERROR: Exception while requiring app/main.rb.
+** Failed to load app/main.rb.
+line 60:19: syntax error, unexpected **
 
 
 
-The method named
-  :mouse
-doesn't exist on [Game, #<Class:#<Game:0x2d57ebc9210>>, AttrDR].
-
-(suggestions above)
 ** Backtrace:
-*** app/main.rb:167:in fire_player
-*** app/main.rb:33:in tick
-*** app/main.rb:184:in tick
+** Backtrace:
