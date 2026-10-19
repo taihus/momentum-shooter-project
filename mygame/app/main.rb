@@ -1,5 +1,7 @@
 # Using samples/99_genre_arcade/twinstick as a starting point
-# samples/07_simple_camera
+# samples/07_advanced_rendering/07_simple_camera
+# samples/07_advanced_rendering/07_shake_camera
+# samples/07_advanced_rendering/10_camera_and_large_map
 class Game
   attr_dr
 
