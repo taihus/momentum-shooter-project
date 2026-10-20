@@ -12,7 +12,7 @@ class Game
   end
 
   def reset_game
-    @world  = { w: 1280, h: 720 }
+    @world  = { w: 2000, h: 2000 }
     @camera = { x: 640, y: 300, scale: 1.0 }
     @player = { x: 600, y: 320, w: 80, h: 80,
                 path: 'sprites/circle/solid.png',
@@ -164,8 +164,8 @@ class Game
 
     @player.x += @player.vx
     @player.y += @player.vy
-    @player.x = @player.x.clamp 0, 1200
-    @player.y = @player.y.clamp 0, 640
+    @player.x = @player.x.clamp 0, @world.w - @player.w
+    @player.y = @player.y.clamp 0, @world.h - @player.h
 
     dir = inputs.keyboard.directional_vector_wasd ||
           inputs.controller_one.directional_vector_left_analog_cardinal
