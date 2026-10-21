@@ -158,9 +158,18 @@ class Game
     end
   end
 
+  # Idea: normal movement doesn't work when boost mode is enabled?
+  # idea: movement works differently in boost mode?
+  # or do we just clamp the max speed attainable with walking?
   def move_player
-    @player.vx = @player.vx * 0.9
-    @player.vy = @player.vy * 0.9
+    friction_factor = 0.9;
+
+    if inputs.keyboard.key_held.shift
+      friction_factor = 1.0;
+    end
+
+    @player.vx = @player.vx * friction_factor
+    @player.vy = @player.vy * friction_factor
 
     @player.x += @player.vx
     @player.y += @player.vy
@@ -173,8 +182,14 @@ class Game
 
     return if !dir
 
-    @player.vx += dir.x * 0.75
-    @player.vy += dir.y * 0.75
+    boost = 1.0;
+
+    if inputs.keyboard.key_down.space
+      boost = 100.0;
+    end
+
+    @player.vx += dir.x * 0.75 * boost
+    @player.vy += dir.y * 0.75 * boost
   end
 
   def fire_player
