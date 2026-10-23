@@ -2,6 +2,19 @@
 # samples/07_advanced_rendering/07_simple_camera
 # samples/07_advanced_rendering/07_shake_camera
 # samples/07_advanced_rendering/10_camera_and_large_map
+
+# Design goal: high speed but rewards thinking 2 seconds ahead instead of fast
+# reflexes. Reflexes are rewarded but focus needs to be on entering a flow
+# state via constant moderation of how much information the player is presented
+# with so that their mental picture of the next few seconds is able to be
+# updated.
+
+# Problem: player needs to be able to see what's coming in their direction
+# of travel if travelling at high speed.
+# Possible solution: inspired by Sorath; Devil Daggers and HYPER DEMON. Warp
+# the camera's POV based on combination of velocity and acceleration.
+# this is gonna be interesting to pull off
+
 class Game
   attr_dr
 
