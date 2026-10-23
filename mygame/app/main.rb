@@ -25,7 +25,7 @@ class Game
   end
 
   def reset_game
-    @world  = { w: 1280, h: 720 }
+    @world  = { w: 2000, h: 2000 }
     @camera = { x: 640, y: 300, scale: 1.0 }
     @player = { x: 600, y: 320, w: 80, h: 80,
                 path: 'sprites/circle/solid.png',
@@ -171,14 +171,23 @@ class Game
     end
   end
 
+  # Idea: normal movement doesn't work when boost mode is enabled?
+  # idea: movement works differently in boost mode?
+  # or do we just clamp the max speed attainable with walking?
   def move_player
-    @player.vx = @player.vx * 0.9
-    @player.vy = @player.vy * 0.9
+    friction_factor = 0.9;
+
+    if inputs.keyboard.key_held.shift
+      friction_factor = 1.0;
+    end
+
+    @player.vx = @player.vx * friction_factor
+    @player.vy = @player.vy * friction_factor
 
     @player.x += @player.vx
     @player.y += @player.vy
-    @player.x = @player.x.clamp 0, 1200
-    @player.y = @player.y.clamp 0, 640
+    @player.x = @player.x.clamp 0, @world.w - @player.w
+    @player.y = @player.y.clamp 0, @world.h - @player.h
 
     dir = inputs.keyboard.directional_vector_wasd ||
           inputs.controller_one.directional_vector_left_analog_cardinal
@@ -186,8 +195,14 @@ class Game
 
     return if !dir
 
-    @player.vx += dir.x * 0.75
-    @player.vy += dir.y * 0.75
+    boost = 1.0;
+
+    if inputs.keyboard.key_down.space
+      boost = 100.0;
+    end
+
+    @player.vx += dir.x * 0.75 * boost
+    @player.vy += dir.y * 0.75 * boost
   end
 
   def fire_player
