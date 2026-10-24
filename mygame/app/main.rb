@@ -47,6 +47,7 @@ class Game
     calc_player
     render
     calc_game_over
+    input_edit_map
   end
 
   def calc_game_over
@@ -86,10 +87,23 @@ class Game
     # recompute_tiles
   end
 
+  def input_edit_map
+    state.mouse_held = true  if inputs.mouse.down
+    state.mouse_held = false if inputs.mouse.up
+
+    return unless state.mouse_held
+
+    ordinal = { x: (inputs.mouse.x.idiv @world.tile_size),
+                y: (inputs.mouse.y.idiv @world.tile_size) }
+
+    place_tile ordinal
+    recompute_tiles
+  end
+
   def place_tile ordinal
     found = find_tile ordinal
     if !found
-      @world.tiles << ordinal
+      @world.tiles << (state.new_entity(:tile).merge(ordinal))
     end
   end
 
@@ -97,12 +111,12 @@ class Game
     @world.tiles.each do |t|
       t.w = @world.tile_size
       t.h = @world.tile_size
-      t.neighbors = tile_neighbors t, @tiles
+      t.neighbors = tile_neighbors t, @world.tiles
 
-      t.rect = [t.x * @world.tile_size,
-                t.y * @world.tile_size,
-                @world.tile_size,
-                @world.tile_size].rect.to_hash
+      t.rect = {x: t.x * @world.tile_size,
+                y: t.y * @world.tile_size,
+                w: @world.tile_size,
+                h: @world.tile_size}
 
       sprite_sub_path = t.neighbors.mask.map { |m| flip_bit m }.join("")
 
@@ -114,6 +128,11 @@ class Game
         path: "sprites/tile/wall-#{sprite_sub_path}.png"
       }
     end
+  end
+
+  def flip_bit bit
+    return 0 if bit == 1
+    return 1
   end
 
   def find_tile ordinal
@@ -141,11 +160,11 @@ class Game
     tile_b = 1 if b
     tile_l = 1 if l
 
-    state.new_entity :neighbors, mask: [tile_t, tile_r, tile_b, tile_l],
+    state.new_entity(:neighbors).merge({mask: [tile_t, tile_r, tile_b, tile_l],
                                  t:    t ? :some : :none,
                                  b:    b ? :some : :none,
                                  l:    l ? :some : :none,
-                                 r:    r ? :some : :none
+                                 r:    r ? :some : :none})
   end
 
   def render
@@ -167,7 +186,8 @@ class Game
 
     outputs[:scene].background_color = [30, 30, 30]
 
-    outputs[:scene].primitives << [@player, @enemies, @bullets]
+    outputs[:scene].sprites << [@player, @enemies, @bullets]
+    outputs[:scene].sprites << @world.tiles.map(&:sprite)
 
     outputs[:scene].w = @world.w
     outputs[:scene].h = @world.h
@@ -286,12 +306,8 @@ class Game
     tiles_below = find_tiles { |t| t.rect.top <= @player.prev_rect.y }
     collision = find_colliding_tile tiles_below, (@player.rect.merge y: @player.next_rect.y)
     return unless collision
-    if collision.neighbors.b == :none && @player.jumped_down_at.elapsed_time < 10
-      @player.vy = -1
-    else
-      @player.y  = collision.rect.y + state.tile_size
-      @player.vy = 0
-    end
+    @player.y  = collision.rect.y + @world.tile_size
+    @player.vy = 0
   end
 
   def calc_left
@@ -317,7 +333,6 @@ class Game
     tiles_above = find_tiles { |t| t.rect.y >= @player.prev_rect.y }
     collision = find_colliding_tile tiles_above, (@player.rect.merge y: @player.next_rect.y)
     return unless collision
-    return if collision.neighbors.t == :none
     @player.vy = 0
     @player.y  = collision.rect.bottom - @player.rect.h
   end
