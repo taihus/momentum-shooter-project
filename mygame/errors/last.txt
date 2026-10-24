@@ -1,7 +1,7 @@
 * EXCEPTION:
 * ERROR: Exception while requiring app/main.rb.
 ** Failed to load app/main.rb.
-line 60:19: syntax error, unexpected **
+line 393:5: syntax error, unexpected local variable or method, expecting keyword_end
 
 
 
