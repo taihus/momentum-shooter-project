@@ -1,20 +1,19 @@
 * EXCEPTION:
-* ERROR: :tiles method missing on ~Game~.
+* ERROR: :camera method missing on ~Game~.
 
 #+begin_src ~Game#inspect~
-#<Game:0x2747cb423a0 @enemies=[], @world={:w=>2000, :h=>2000, :tile_size=>32, :tiles=>[]}, @bullets=[], @player={:x=>600.0, :y=>320.0, :w=>80, :h=>80, :path=>"sprites/circle/solid.png", :vx=>0.0, :vy=>0.0, :health=>10, :health_perc=>1.0, :cooldown=>0, :score=>0, :rect=>{:x=>600, :y=>320, :w=>80, :h=>80}, :next_rect=>{:x=>600, :y=>320, :w=>80, :h=>80}, :prev_rect=>{:x=>600, :y=>320, :w=>80, :h=>80}}, @inputs=#<GTK::Inputs:0x2746a758550>, @outputs=#<GTK::TopLevelOutputs:0x2746a7540b0>, @camera={:x=>640, :y=>300, :scale=>1.0}, @spawn_timer=120, @args=#<GTK::Args:0x2746a758c10>>
+#<Game:0x16653da3da0 @spawn_timer=120, @world={:w=>1280, :h=>720, :tile_size=>32, :tiles=>[]}, @enemies=[], @bullets=[], @inputs=#<GTK::Inputs:0x1664d6b7630>, @player={:x=>40.0, :y=>40.0, :w=>40, :h=>40, :anchor_x=>0.5, :anchor_y=>0.5, :path=>"sprites/circle/solid.png", :vx=>0.0, :vy=>0.0, :aim_dir=>{:x=>0, :y=>0}, :health=>10, :health_perc=>1.0, :cooldown=>0, :score=>0, :rect=>{:x=>40, :y=>40, :w=>40, :h=>40}, :next_rect=>{:x=>40, :y=>40, :w=>40, :h=>40}, :prev_rect=>{:x=>40, :y=>40, :w=>40, :h=>40}}, @camera={:x=>640, :y=>360, :scale=>1.0}, @outputs=#<GTK::TopLevelOutputs:0x1664d6b2b30>, @args=#<GTK::Args:0x1664d6b7690>>
 #+end_src ~Game#inspect~
 
-** Did you mean?
-Here's a list of methods that kind of look like :tiles.
-*** :tile_neighbors
+
 
 The method named
-  :tiles
-doesn't exist on [Game, #<Class:#<Game:0x2747cb423a0>>, AttrDR].
+  :camera
+doesn't exist on [Game, #<Class:#<Game:0x16653da3da0>>, AttrDR].
 
 (suggestions above)
 ** Backtrace:
-*** app/main.rb:190:in render
-*** app/main.rb:48:in tick
-*** app/main.rb:408:in tick
+*** app/main.rb:243:in calc_cursor_in_scene
+*** app/main.rb:197:in render
+*** app/main.rb:54:in tick
+*** app/main.rb:429:in tick

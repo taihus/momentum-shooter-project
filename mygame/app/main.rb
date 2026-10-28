@@ -26,9 +26,9 @@ class Game
   end
 
   def reset_game
-    @world  = { w: 1280, h: 720 }
-    @camera = { x: 0, y: 0, scale: 1.0 }
-    @player = { x: 620, y: 340, w: 40, h: 40,
+    # @world  = { w: 1280, h: 720 }
+    generate_map
+    @player = { x: 40, y: 40, w: 40, h: 40,
                 anchor_x: 0.5,
                 anchor_y: 0.5,
                 path: 'sprites/circle/solid.png',
@@ -39,6 +39,8 @@ class Game
                 health_perc: 1.0,
                 cooldown: 0,
                 score: 0 }
+    # camera x and y correspond to the player's position on camera
+    @camera = { x: 640, y: 360, scale: 1.0 }
     @spawn_timer = 120
     @enemies = []
     @bullets = []
@@ -61,7 +63,7 @@ class Game
   end
 
   def generate_map
-    @world  = { w: 2000, h: 2000,
+    @world  = { w: 1280, h: 720,
                 tile_size: 32,
                 tiles: [] }
     # tile_width = @world.w.idiv(@world.tile_size)
@@ -96,9 +98,9 @@ class Game
     state.mouse_held = false if inputs.mouse.up
 
     return unless state.mouse_held
-
-    ordinal = { x: (inputs.mouse.x.idiv @world.tile_size),
-                y: (inputs.mouse.y.idiv @world.tile_size) }
+    cursor_pos = calc_cursor_in_scene
+    ordinal = { x: (cursor_pos.x.idiv @world.tile_size),
+                y: (cursor_pos.y.idiv @world.tile_size) }
 
     place_tile ordinal
     recompute_tiles
@@ -173,8 +175,8 @@ class Game
 
   def render
     progress_bar = Geometry.rect(
-      x: 640,
-      y: 390,
+      x: @camera.x,
+      y: @camera.y + 30,
       w: 128,
       h: 32,
       anchor_x: 0.5,
@@ -192,11 +194,15 @@ class Game
 
     # concept: two lines extending out from player past location of cursor.
 
-    guide_line_left = { x: @player.x, y: @player.y, x2: inputs.mouse.x, y2: inputs.mouse.y}
+    # cursor in scene is important for calculations, but final UI elements should render ON TOP of scene
+    # this is important to avoid scaling the UI with the scene.
+
+    cursor_pos = calc_cursor_in_scene
+    guide_line_left = { x: @player.x, y: @player.y, x2: cursor_pos.x, y2: cursor_pos.y}
 
     outputs[:scene].background_color = [30, 30, 30]
 
-    outputs[:scene].primitives << [@player, @enemies, @bullets]
+    outputs[:scene].primitives << [@player, @enemies, @bullets, @world.tiles.map(&:sprite)]
 
     outputs[:scene].lines << guide_line_left
 
@@ -237,8 +243,8 @@ class Game
   end
 
   def calc_cursor_in_scene
-    result = { x: inputs.mouse.x,
-              y: inputs.mouse.y}
+    result = { x: @player.x + (inputs.mouse.x - @camera.x),
+              y: @player.y + (inputs.mouse.y - @camera.y)}
     return result
   end
 
