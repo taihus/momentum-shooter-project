@@ -297,6 +297,7 @@ class Game
   end
 
   def calc_player
+    calc_player_v
     calc_player_rect
     calc_below
     calc_left
@@ -306,18 +307,7 @@ class Game
     # fire_player
     # move_player_bullets
   end
-
-  def move_player_bullets
-    @bullets.each do |bullet|
-      bullet.x += bullet.vx
-      bullet.y += bullet.vy
-    end
-
-    @bullets.reject! do |bullet|
-      bullet.x < -20 || bullet.y < -20 || bullet.x > 1300 || bullet.y > 740
-    end
-  end
-
+  
   def calc_player_rect
     @player.rect      = current_player_rect
     @player.next_rect = @player.rect.merge x: @player.x + @player.vx,
@@ -331,7 +321,7 @@ class Game
     tiles_below = find_tiles { |t| t.rect.top <= @player.prev_rect.y }
     collision = find_colliding_tile tiles_below, (@player.rect.merge y: @player.next_rect.y)
     return unless collision
-    @player.y  = collision.rect.y + @world.tile_size
+    @player.y  = collision.rect.y + @world.tile_size + (@player.rect.h * 0.5)
     @player.vy = 0
   end
 
@@ -340,7 +330,8 @@ class Game
     tiles_left = find_tiles { |t| t.rect.right <= @player.prev_rect.left }
     collision = find_colliding_tile tiles_left, (@player.rect.merge x: @player.next_rect.x)
     return unless collision
-    @player.x  = collision.rect.right
+    # puts("colliding left")
+    @player.x  = collision.rect.right + (@player.rect.w * 0.5)
     @player.vx = 0
   end
 
@@ -348,8 +339,10 @@ class Game
     return unless @player.vx > 0
     tiles_right = find_tiles { |t| t.rect.left >= @player.prev_rect.right }
     collision = find_colliding_tile tiles_right, (@player.rect.merge x: @player.next_rect.x)
+    # puts(tiles_right)
     return unless collision
-    @player.x  = collision.rect.left - @player.rect.w
+    puts("colliding right")
+    @player.x  = collision.rect.left - (@player.rect.w * 0.5)
     @player.vx = 0
   end
 
@@ -359,13 +352,27 @@ class Game
     collision = find_colliding_tile tiles_above, (@player.rect.merge y: @player.next_rect.y)
     return unless collision
     @player.vy = 0
-    @player.y  = collision.rect.bottom - @player.rect.h
+    @player.y  = collision.rect.bottom - (@player.rect.h * 0.5)
   end
 
-  # Idea: normal movement doesn't work when boost mode is enabled?
-  # idea: movement works differently in boost mode?
-  # or do we just clamp the max speed attainable with walking?
-  def move_player
+  def calc_player_v
+    dir = inputs.keyboard.directional_vector_wasd ||
+          inputs.controller_one.directional_vector_left_analog_cardinal
+          # || @on_screen_gamepad_left.dpad_vector
+
+    # return if !dir
+
+    boost = 1.0;
+
+    if inputs.keyboard.key_down.space
+      boost = 100.0;
+    end
+
+    if dir
+      @player.vx += dir.x * 0.75 * boost
+      @player.vy += dir.y * 0.75 * boost
+    end
+
     friction_factor = 0.9;
 
     if inputs.keyboard.key_held.shift
@@ -374,26 +381,16 @@ class Game
 
     @player.vx = @player.vx * friction_factor
     @player.vy = @player.vy * friction_factor
+  end
 
+  # Idea: normal movement doesn't work when boost mode is enabled?
+  # idea: movement works differently in boost mode?
+  # or do we just clamp the max speed attainable with walking?
+  def move_player
     @player.x += @player.vx
     @player.y += @player.vy
     @player.x = @player.x.clamp 0, @world.w - @player.w
     @player.y = @player.y.clamp 0, @world.h - @player.h
-
-    dir = inputs.keyboard.directional_vector_wasd ||
-          inputs.controller_one.directional_vector_left_analog_cardinal
-          # || @on_screen_gamepad_left.dpad_vector
-
-    return if !dir
-
-    boost = 1.0;
-
-    if inputs.keyboard.key_down.space
-      boost = 100.0;
-    end
-
-    @player.vx += dir.x * 0.75 * boost
-    @player.vy += dir.y * 0.75 * boost
   end
 
   def fire_player
@@ -423,10 +420,22 @@ class Game
 
     @player.cooldown = 30
   end
-end
 
-def current_player_rect
-  { x: @player.x, y: @player.y, w: @player.w, h: @player.h }
+  def move_player_bullets
+    @bullets.each do |bullet|
+      bullet.x += bullet.vx
+      bullet.y += bullet.vy
+    end
+
+    @bullets.reject! do |bullet|
+      bullet.x < -20 || bullet.y < -20 || bullet.x > 1300 || bullet.y > 740
+    end
+  end
+
+
+  def current_player_rect
+    { x: @player.x, y: @player.y, w: @player.w, h: @player.h, anchor_x: @player.anchor_x, anchor_y: @player.anchor_y}
+  end
 end
 
 module Main
