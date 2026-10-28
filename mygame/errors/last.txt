@@ -1,6 +1,20 @@
-* EXCEPTION: 'calc_scene_position': wrong number of arguments (1 for 0)
+* EXCEPTION:
+* ERROR: :tiles method missing on ~Game~.
+
+#+begin_src ~Game#inspect~
+#<Game:0x2747cb423a0 @enemies=[], @world={:w=>2000, :h=>2000, :tile_size=>32, :tiles=>[]}, @bullets=[], @player={:x=>600.0, :y=>320.0, :w=>80, :h=>80, :path=>"sprites/circle/solid.png", :vx=>0.0, :vy=>0.0, :health=>10, :health_perc=>1.0, :cooldown=>0, :score=>0, :rect=>{:x=>600, :y=>320, :w=>80, :h=>80}, :next_rect=>{:x=>600, :y=>320, :w=>80, :h=>80}, :prev_rect=>{:x=>600, :y=>320, :w=>80, :h=>80}}, @inputs=#<GTK::Inputs:0x2746a758550>, @outputs=#<GTK::TopLevelOutputs:0x2746a7540b0>, @camera={:x=>640, :y=>300, :scale=>1.0}, @spawn_timer=120, @args=#<GTK::Args:0x2746a758c10>>
+#+end_src ~Game#inspect~
+
+** Did you mean?
+Here's a list of methods that kind of look like :tiles.
+*** :tile_neighbors
+
+The method named
+  :tiles
+doesn't exist on [Game, #<Class:#<Game:0x2747cb423a0>>, AttrDR].
+
+(suggestions above)
 ** Backtrace:
-*** app/main.rb:107:in calc_scene_position
-*** app/main.rb:84:in render
-*** app/main.rb:42:in tick
-*** app/main.rb:245:in tick
+*** app/main.rb:190:in render
+*** app/main.rb:48:in tick
+*** app/main.rb:408:in tick

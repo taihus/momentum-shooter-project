@@ -2,6 +2,19 @@
 # samples/07_advanced_rendering/07_simple_camera
 # samples/07_advanced_rendering/07_shake_camera
 # samples/07_advanced_rendering/10_camera_and_large_map
+
+# Design goal: high speed but rewards thinking 2 seconds ahead instead of fast
+# reflexes. Reflexes are rewarded but focus needs to be on entering a flow
+# state via constant moderation of how much information the player is presented
+# with so that their mental picture of the next few seconds is able to be
+# updated.
+
+# Problem: player needs to be able to see what's coming in their direction
+# of travel if travelling at high speed.
+# Possible solution: inspired by Sorath; Devil Daggers and HYPER DEMON. Warp
+# the camera's POV based on combination of velocity and acceleration.
+# this is gonna be interesting to pull off
+
 class Game
   attr_dr
 
@@ -9,6 +22,7 @@ class Game
     # @on_screen_gamepad_left = OnScreenGamepad.new args.inputs, side: :left
     # @on_screen_gamepad_right = OnScreenGamepad.new args.inputs, side: :right
     reset_game
+    generate_map
   end
 
   def reset_game
@@ -33,20 +47,128 @@ class Game
   def tick
     # @on_screen_gamepad_left.tick
     # @on_screen_gamepad_right.tick
-    spawn_enemies
-    kill_enemies
-    move_enemies
-    move_bullets
-    move_player
-    fire_player
+    # calc_enemies
+    calc_player
     render
     calc_game_over
+    input_edit_map
   end
 
   def calc_game_over
     if @player.health < 0
       reset_game
     end
+  end
+
+  def generate_map
+    @world  = { w: 2000, h: 2000,
+                tile_size: 32,
+                tiles: [] }
+    # tile_width = @world.w.idiv(@world.tile_size)
+    # tile_height = @world.h.idiv(@world.tile_size)
+    # tile_width.times do |x|
+    #   tile_height.times do |y|
+    #     ordinal = { x: x , y: y }
+    #     normalized_x = (x - @world.w.idiv(2)).fdiv(@world.w)
+    #     normalized_y = (y - @world.h.idiv(2)).fdiv(@world.h)
+    #     normalized_z = 0
+    #     lacunarity = 7.0
+    #     gain = 0.6
+    #     offset = 1.0
+    #     octaves = 6
+    #     result = Geometry.perlin_ridge_noise( normalized_x,
+    #                                           normalized_y,
+    #                                           normalized_z,
+    #                                           lacunarity,
+    #                                           gain,
+    #                                           offset,
+    #                                           octaves)
+    #     if result > 0.0
+    #       place_tile ordinal
+    #     end
+    #   end
+    # end
+    # recompute_tiles
+  end
+
+  def input_edit_map
+    state.mouse_held = true  if inputs.mouse.down
+    state.mouse_held = false if inputs.mouse.up
+
+    return unless state.mouse_held
+
+    ordinal = { x: (inputs.mouse.x.idiv @world.tile_size),
+                y: (inputs.mouse.y.idiv @world.tile_size) }
+
+    place_tile ordinal
+    recompute_tiles
+  end
+
+  def place_tile ordinal
+    found = find_tile ordinal
+    if !found
+      @world.tiles << (state.new_entity(:tile).merge(ordinal))
+    end
+  end
+
+  def recompute_tiles
+    @world.tiles.each do |t|
+      t.w = @world.tile_size
+      t.h = @world.tile_size
+      t.neighbors = tile_neighbors t, @world.tiles
+
+      t.rect = {x: t.x * @world.tile_size,
+                y: t.y * @world.tile_size,
+                w: @world.tile_size,
+                h: @world.tile_size}
+
+      sprite_sub_path = t.neighbors.mask.map { |m| flip_bit m }.join("")
+
+      t.sprite = {
+        x: t.x * @world.tile_size,
+        y: t.y * @world.tile_size,
+        w: @world.tile_size,
+        h: @world.tile_size,
+        path: "sprites/tile/wall-#{sprite_sub_path}.png"
+      }
+    end
+  end
+
+  def flip_bit bit
+    return 0 if bit == 1
+    return 1
+  end
+
+  def find_tile ordinal
+    @world.tiles.find { |t| t.x == ordinal.x && t.y == ordinal.y }
+  end
+
+  def find_tiles &block
+    @world.tiles.find_all(&block)
+  end
+
+  def find_colliding_tile tiles, target
+    tiles.find { |t| t.rect.intersect_rect? target }
+  end
+
+  def tile_neighbors tile, other_points
+    t = find_tile x: tile.x + 0, y: tile.y + 1
+    r = find_tile x: tile.x + 1, y: tile.y + 0
+    b = find_tile x: tile.x + 0, y: tile.y - 1
+    l = find_tile x: tile.x - 1, y: tile.y + 0
+
+    tile_t, tile_r, tile_b, tile_l = 0
+
+    tile_t = 1 if t
+    tile_r = 1 if r
+    tile_b = 1 if b
+    tile_l = 1 if l
+
+    state.new_entity(:neighbors).merge({mask: [tile_t, tile_r, tile_b, tile_l],
+                                 t:    t ? :some : :none,
+                                 b:    b ? :some : :none,
+                                 l:    l ? :some : :none,
+                                 r:    r ? :some : :none})
   end
 
   def render
@@ -164,7 +286,18 @@ class Game
     end
   end
 
-  def move_bullets
+  def calc_player
+    calc_player_rect
+    calc_below
+    calc_left
+    calc_right
+    calc_above
+    move_player
+    # fire_player
+    # move_player_bullets
+  end
+
+  def move_player_bullets
     @bullets.each do |bullet|
       bullet.x += bullet.vx
       bullet.y += bullet.vy
@@ -173,6 +306,50 @@ class Game
     @bullets.reject! do |bullet|
       bullet.x < -20 || bullet.y < -20 || bullet.x > 1300 || bullet.y > 740
     end
+  end
+
+  def calc_player_rect
+    @player.rect      = current_player_rect
+    @player.next_rect = @player.rect.merge x: @player.x + @player.vx,
+                                         y: @player.y + @player.vy
+    @player.prev_rect = @player.rect.merge x: @player.x - @player.vx,
+                                         y: @player.y - @player.vy
+  end
+
+  def calc_below
+    return unless @player.vy <= 0
+    tiles_below = find_tiles { |t| t.rect.top <= @player.prev_rect.y }
+    collision = find_colliding_tile tiles_below, (@player.rect.merge y: @player.next_rect.y)
+    return unless collision
+    @player.y  = collision.rect.y + @world.tile_size
+    @player.vy = 0
+  end
+
+  def calc_left
+    return unless @player.vx < 0
+    tiles_left = find_tiles { |t| t.rect.right <= @player.prev_rect.left }
+    collision = find_colliding_tile tiles_left, (@player.rect.merge x: @player.next_rect.x)
+    return unless collision
+    @player.x  = collision.rect.right
+    @player.vx = 0
+  end
+
+  def calc_right
+    return unless @player.vx > 0
+    tiles_right = find_tiles { |t| t.rect.left >= @player.prev_rect.right }
+    collision = find_colliding_tile tiles_right, (@player.rect.merge x: @player.next_rect.x)
+    return unless collision
+    @player.x  = collision.rect.left - @player.rect.w
+    @player.vx = 0
+  end
+
+  def calc_above
+    return unless @player.vy > 0
+    tiles_above = find_tiles { |t| t.rect.y >= @player.prev_rect.y }
+    collision = find_colliding_tile tiles_above, (@player.rect.merge y: @player.next_rect.y)
+    return unless collision
+    @player.vy = 0
+    @player.y  = collision.rect.bottom - @player.rect.h
   end
 
   # Idea: normal movement doesn't work when boost mode is enabled?
@@ -238,14 +415,22 @@ class Game
   end
 end
 
+def current_player_rect
+  { x: @player.x, y: @player.y, w: @player.w, h: @player.h }
+end
+
 module Main
-  def tick args
+  def tick
     @game ||= Game.new args
     @game.args = args
     @game.tick
   end
 
-  def reset args
+  def boot
+    @state = {}
+  end
+
+  def reset
     @game = nil
   end
 end
