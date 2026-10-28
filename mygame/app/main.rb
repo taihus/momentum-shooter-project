@@ -26,8 +26,8 @@ class Game
   end
 
   def reset_game
-    @world  = { w: 1280, h: 720 }
-    @camera = { x: 0, y: 0, scale: 1.0 }
+    generate_map
+    @camera = { x: 640, y: 360, scale: 1.0 }
     @player = { x: 620, y: 340, w: 40, h: 40,
                 anchor_x: 0.5,
                 anchor_y: 0.5,
@@ -97,8 +97,10 @@ class Game
 
     return unless state.mouse_held
 
-    ordinal = { x: (inputs.mouse.x.idiv @world.tile_size),
-                y: (inputs.mouse.y.idiv @world.tile_size) }
+    cursor_in_scene = calc_cursor_in_scene
+
+    ordinal = { x: (cursor_in_scene.x.idiv @world.tile_size),
+                y: (cursor_in_scene.y.idiv @world.tile_size) }
 
     place_tile ordinal
     recompute_tiles
@@ -196,7 +198,7 @@ class Game
 
     outputs[:scene].background_color = [30, 30, 30]
 
-    outputs[:scene].primitives << [@player, @enemies, @bullets]
+    outputs[:scene].primitives << [@player, @enemies, @bullets, @world.tiles.map(&:sprite)]
 
     outputs[:scene].lines << guide_line_left
 
@@ -227,18 +229,18 @@ class Game
   end
 
   def calc_scene_position
-    result = { x: @camera.x - (@player.x * @camera.scale),
-              y: @camera.y - (@player.y * @camera.scale),
-              w: @world.w * @camera.scale,
-              h: @world.h * @camera.scale,
-              scale: @camera.scale }
+    result = {  x: @camera.x - (@player.x * @camera.scale),
+                y: @camera.y - (@player.y * @camera.scale),
+                w: @world.w * @camera.scale,
+                h: @world.h * @camera.scale,
+                scale: @camera.scale }
 
     return result
   end
 
   def calc_cursor_in_scene
-    result = { x: inputs.mouse.x,
-              y: inputs.mouse.y}
+    result = {  x: inputs.mouse.x,
+                y: inputs.mouse.y }
     return result
   end
 
