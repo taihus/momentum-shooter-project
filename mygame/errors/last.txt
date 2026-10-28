@@ -1,9 +1,6 @@
-* EXCEPTION:
-* ERROR: Exception while requiring app/main.rb.
-** Failed to load app/main.rb.
-line 60:19: syntax error, unexpected **
-
-
-
+* EXCEPTION: 'calc_scene_position': wrong number of arguments (1 for 0)
 ** Backtrace:
-** Backtrace:
+*** app/main.rb:107:in calc_scene_position
+*** app/main.rb:84:in render
+*** app/main.rb:42:in tick
+*** app/main.rb:245:in tick

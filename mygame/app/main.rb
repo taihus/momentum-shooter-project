@@ -12,12 +12,15 @@ class Game
   end
 
   def reset_game
-    @world  = { w: 2000, h: 2000 }
-    @camera = { x: 640, y: 300, scale: 1.0 }
-    @player = { x: 600, y: 320, w: 80, h: 80,
+    @world  = { w: 1280, h: 720 }
+    @camera = { x: 0, y: 0, scale: 1.0 }
+    @player = { x: 620, y: 340, w: 40, h: 40,
+                anchor_x: 0.5,
+                anchor_y: 0.5,
                 path: 'sprites/circle/solid.png',
                 vx: 0,
                 vy: 0,
+                aim_dir: { x: 0, y: 0 },
                 health: 10,
                 health_perc: 1.0,
                 cooldown: 0,
@@ -48,9 +51,9 @@ class Game
 
   def render
     progress_bar = Geometry.rect(
-      x: @player.x + 40,
-      y: @player.y + 80 + 32,
-      w: 256,
+      x: 640,
+      y: 390,
+      w: 128,
       h: 32,
       anchor_x: 0.5,
       anchor_y: 0.5,
@@ -59,19 +62,27 @@ class Game
     health_area = Geometry.zoom_rect(rect: progress_bar, px: -8)
     current_health = { **health_area, w: health_area.w * @player.health_perc }
 
-    outputs[:scene].primitives << progress_bar
-    outputs[:scene].primitives << health_area.merge(r: 255, g: 255, b: 255, path: :solid)
-    outputs[:scene].primitives << current_health.merge(r: 80, g: 155, b: 80, path: :solid)
+    outputs.primitives << progress_bar
+    outputs.primitives << health_area.merge(r: 255, g: 255, b: 255, path: :solid)
+    outputs.primitives << current_health.merge(r: 80, g: 155, b: 80, path: :solid)
+
+    # TODO: create and store a hash representing the position of the cursor IN THE SCENE, not on screen
+
+    # concept: two lines extending out from player past location of cursor.
+
+    guide_line_left = { x: @player.x, y: @player.y, x2: inputs.mouse.x, y2: inputs.mouse.y}
 
     outputs[:scene].background_color = [30, 30, 30]
 
     outputs[:scene].primitives << [@player, @enemies, @bullets]
 
+    outputs[:scene].lines << guide_line_left
+
     outputs[:scene].w = @world.w
     outputs[:scene].h = @world.h
 
-    scene_position = calc_scene_position args
-    args.outputs.sprites << { x: scene_position.x,
+    scene_position = calc_scene_position
+    outputs.sprites << { x: scene_position.x,
                             y: scene_position.y,
                             w: scene_position.w,
                             h: scene_position.h,
@@ -93,13 +104,19 @@ class Game
 
   end
 
-  def calc_scene_position args
+  def calc_scene_position
     result = { x: @camera.x - (@player.x * @camera.scale),
               y: @camera.y - (@player.y * @camera.scale),
               w: @world.w * @camera.scale,
               h: @world.h * @camera.scale,
               scale: @camera.scale }
 
+    return result
+  end
+
+  def calc_cursor_in_scene
+    result = { x: inputs.mouse.x,
+              y: inputs.mouse.y}
     return result
   end
 
@@ -193,6 +210,10 @@ class Game
   end
 
   def fire_player
+    dir = { x: inputs.mouse.x - @player.x, y: inputs.mouse.y - @player.y }
+    dir = Geometry.vec2_normalize dir
+    @player.aim_dir = dir
+
     @player.cooldown -= 1
 
     return if @player.cooldown > 0
@@ -201,11 +222,10 @@ class Game
     #       inputs.controller_one.directional_vector_right_analog_cardinal
     #       # || @on_screen_gamepad_right.dpad_vector
 
-    return if !inputs.mouse.button_left
+    # return if !inputs.mouse.button_left
     # outputs.debug << "this is a debug output"
 
-    dir = { x: inputs.mouse.x - @player.x, y: inputs.mouse.y - @player.y }
-    dir = Geometry.vec2_normalize dir
+    
     # print dir
     @bullets << {
       x: @player.x + 30 + 40 * dir.x,
