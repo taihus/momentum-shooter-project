@@ -22,13 +22,12 @@ class Game
     # @on_screen_gamepad_left = OnScreenGamepad.new args.inputs, side: :left
     # @on_screen_gamepad_right = OnScreenGamepad.new args.inputs, side: :right
     reset_game
-    generate_map
+    # generate_map
   end
 
   def reset_game
     # @world  = { w: 1280, h: 720 }
-    generate_map
-    @player = { x: 40, y: 40, w: 40, h: 40,
+    @player = { x: 400, y: 360, w: 40, h: 40,
                 anchor_x: 0.5,
                 anchor_y: 0.5,
                 path: 'sprites/circle/solid.png',
@@ -44,12 +43,14 @@ class Game
     @spawn_timer = 120
     @enemies = []
     @bullets = []
+    $map_loaded = false
   end
 
   def tick
     # @on_screen_gamepad_left.tick
     # @on_screen_gamepad_right.tick
     # calc_enemies
+    generate_map unless $map_loaded
     calc_player
     render
     calc_game_over
@@ -63,34 +64,35 @@ class Game
   end
 
   def generate_map
-    @world  = { w: 1280, h: 720,
+    @world  = { w: 3600, h: 1200,
                 tile_size: 32,
                 tiles: [] }
-    # tile_width = @world.w.idiv(@world.tile_size)
-    # tile_height = @world.h.idiv(@world.tile_size)
-    # tile_width.times do |x|
-    #   tile_height.times do |y|
-    #     ordinal = { x: x , y: y }
-    #     normalized_x = (x - @world.w.idiv(2)).fdiv(@world.w)
-    #     normalized_y = (y - @world.h.idiv(2)).fdiv(@world.h)
-    #     normalized_z = 0
-    #     lacunarity = 7.0
-    #     gain = 0.6
-    #     offset = 1.0
-    #     octaves = 6
-    #     result = Geometry.perlin_ridge_noise( normalized_x,
-    #                                           normalized_y,
-    #                                           normalized_z,
-    #                                           lacunarity,
-    #                                           gain,
-    #                                           offset,
-    #                                           octaves)
-    #     if result > 0.0
-    #       place_tile ordinal
-    #     end
-    #   end
-    # end
-    # recompute_tiles
+    tile_width = @world.w.idiv(@world.tile_size)
+    tile_height = @world.h.idiv(@world.tile_size)
+    tile_width.times do |x|
+      tile_height.times do |y|
+        ordinal = { x: x , y: y }
+        normalized_x = (x - @world.w.idiv(2)).fdiv(@world.w)
+        normalized_y = (y - @world.h.idiv(2)).fdiv(@world.h)
+        normalized_z = 0
+        lacunarity = 7.0
+        gain = 0.6
+        offset = 1.0
+        octaves = 6
+        result = Geometry.perlin_ridge_noise( normalized_x,
+                                              normalized_y,
+                                              normalized_z,
+                                              lacunarity,
+                                              gain,
+                                              offset,
+                                              octaves)
+        if result > 0.55
+          place_tile ordinal
+        end
+      end
+    end
+    recompute_tiles
+    $map_loaded = true;
   end
 
   def input_edit_map
@@ -111,7 +113,7 @@ class Game
   def place_tile ordinal
     found = find_tile ordinal
     if !found
-      @world.tiles << (state.new_entity(:tile).merge(ordinal))
+      @world.tiles << state.new_entity(:tile).merge(ordinal)
     end
   end
 

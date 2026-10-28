@@ -1,19 +1,21 @@
 * EXCEPTION:
-* ERROR: :camera method missing on ~Game~.
+* ERROR: :state method missing on ~NilClass~.
 
-#+begin_src ~Game#inspect~
-#<Game:0x16653da3da0 @spawn_timer=120, @world={:w=>1280, :h=>720, :tile_size=>32, :tiles=>[]}, @enemies=[], @bullets=[], @inputs=#<GTK::Inputs:0x1664d6b7630>, @player={:x=>40.0, :y=>40.0, :w=>40, :h=>40, :anchor_x=>0.5, :anchor_y=>0.5, :path=>"sprites/circle/solid.png", :vx=>0.0, :vy=>0.0, :aim_dir=>{:x=>0, :y=>0}, :health=>10, :health_perc=>1.0, :cooldown=>0, :score=>0, :rect=>{:x=>40, :y=>40, :w=>40, :h=>40}, :next_rect=>{:x=>40, :y=>40, :w=>40, :h=>40}, :prev_rect=>{:x=>40, :y=>40, :w=>40, :h=>40}}, @camera={:x=>640, :y=>360, :scale=>1.0}, @outputs=#<GTK::TopLevelOutputs:0x1664d6b2b30>, @args=#<GTK::Args:0x1664d6b7690>>
-#+end_src ~Game#inspect~
+#+begin_src ~NilClass#inspect~
+nil
+#+end_src ~NilClass#inspect~
 
 
 
 The method named
-  :camera
-doesn't exist on [Game, #<Class:#<Game:0x16653da3da0>>, AttrDR].
+  :state
+doesn't exist on [NilClass, NilClassFalseClass].
 
 (suggestions above)
 ** Backtrace:
-*** app/main.rb:243:in calc_cursor_in_scene
-*** app/main.rb:197:in render
-*** app/main.rb:54:in tick
-*** app/main.rb:429:in tick
+*** app/main.rb:116:in place_tile
+*** app/main.rb:90:in generate_map
+*** app/main.rb:73:in generate_map
+*** app/main.rb:72:in generate_map
+*** app/main.rb:25:in initialize
+*** app/main.rb:434:in tick
