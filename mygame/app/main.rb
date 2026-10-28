@@ -98,9 +98,11 @@ class Game
     state.mouse_held = false if inputs.mouse.up
 
     return unless state.mouse_held
-    cursor_pos = calc_cursor_in_scene
-    ordinal = { x: (cursor_pos.x.idiv @world.tile_size),
-                y: (cursor_pos.y.idiv @world.tile_size) }
+
+    cursor_in_scene = calc_cursor_in_scene
+
+    ordinal = { x: (cursor_in_scene.x.idiv @world.tile_size),
+                y: (cursor_in_scene.y.idiv @world.tile_size) }
 
     place_tile ordinal
     recompute_tiles
@@ -233,11 +235,11 @@ class Game
   end
 
   def calc_scene_position
-    result = { x: @camera.x - (@player.x * @camera.scale),
-              y: @camera.y - (@player.y * @camera.scale),
-              w: @world.w * @camera.scale,
-              h: @world.h * @camera.scale,
-              scale: @camera.scale }
+    result = {  x: @camera.x - (@player.x * @camera.scale),
+                y: @camera.y - (@player.y * @camera.scale),
+                w: @world.w * @camera.scale,
+                h: @world.h * @camera.scale,
+                scale: @camera.scale }
 
     return result
   end
