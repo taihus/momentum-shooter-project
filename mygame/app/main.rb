@@ -22,12 +22,12 @@ class Game
     # @on_screen_gamepad_left = OnScreenGamepad.new args.inputs, side: :left
     # @on_screen_gamepad_right = OnScreenGamepad.new args.inputs, side: :right
     reset_game
-    # generate_map
+    # perlin_
   end
 
   def reset_game
     # @world  = { w: 1280, h: 720 }
-    @player = { x: 400, y: 360, w: 40, h: 40,
+    @player = { x: 100, y: 100, w: 20, h: 20,
                 anchor_x: 0.5,
                 anchor_y: 0.5,
                 path: 'sprites/circle/solid.png',
@@ -50,11 +50,12 @@ class Game
     # @on_screen_gamepad_left.tick
     # @on_screen_gamepad_right.tick
     # calc_enemies
-    generate_map unless $map_loaded
+    # generate_collision_test_map unless $map_loaded
+    generate_perlin_map unless $map_loaded
     calc_player
     render
     calc_game_over
-    input_edit_map
+    # input_edit_map
   end
 
   def calc_game_over
@@ -63,7 +64,27 @@ class Game
     end
   end
 
-  def generate_map
+  def generate_collision_test_map
+    @world  = { w: 400, h: 400,
+                tile_size: 32,
+                tiles: [] }
+    # place_tile({ x: 6, y: 3 })
+    place_tile({ x: 6, y: 4 })
+    # place_tile({ x: 6, y: 5 })
+    # place_tile({ x: 6, y: 6 })
+    # place_tile({ x: 6, y: 7 })
+    # place_tile({ x: 6, y: 8 })
+    # place_tile({ x: 7, y: 3 })
+    # place_tile({ x: 7, y: 4 })
+    # place_tile({ x: 7, y: 5 })
+    # place_tile({ x: 7, y: 6 })
+    # place_tile({ x: 7, y: 7 })
+    # place_tile({ x: 7, y: 8 })
+    recompute_tiles
+    $map_loaded = true
+  end
+
+  def generate_perlin_map
     @world  = { w: 3600, h: 1200,
                 tile_size: 32,
                 tiles: [] }
@@ -126,7 +147,7 @@ class Game
       t.rect = {x: t.x * @world.tile_size,
                 y: t.y * @world.tile_size,
                 w: @world.tile_size,
-                h: @world.tile_size}
+                h: @world.tile_size}.to_hash
 
       sprite_sub_path = t.neighbors.mask.map { |m| flip_bit m }.join("")
 
@@ -317,18 +338,23 @@ class Game
   end
 
   def calc_below
-    return unless @player.vy <= 0
+    return unless @player.vy < 0
     tiles_below = find_tiles { |t| t.rect.top <= @player.prev_rect.y }
     collision = find_colliding_tile tiles_below, (@player.rect.merge y: @player.next_rect.y)
     return unless collision
-    @player.y  = collision.rect.y + @world.tile_size + (@player.rect.h * 0.5)
+    @player.y  = collision.rect.top + (@player.rect.h * 0.5)
     @player.vy = 0
   end
 
   def calc_left
     return unless @player.vx < 0
-    tiles_left = find_tiles { |t| t.rect.right <= @player.prev_rect.left }
+    tiles_left = find_tiles { |t| t.rect.right <= @player.prev_rect.x }
+    # puts("player prev rect")
+    # puts(@player.prev_rect)
+    # puts("player prev rect left")
+    # puts(@player.prev_rect.left)
     collision = find_colliding_tile tiles_left, (@player.rect.merge x: @player.next_rect.x)
+    # puts(collision)
     return unless collision
     # puts("colliding left")
     @player.x  = collision.rect.right + (@player.rect.w * 0.5)
@@ -337,11 +363,21 @@ class Game
 
   def calc_right
     return unless @player.vx > 0
-    tiles_right = find_tiles { |t| t.rect.left >= @player.prev_rect.right }
-    collision = find_colliding_tile tiles_right, (@player.rect.merge x: @player.next_rect.x)
+    # puts("player prev rect")
+    # puts(@player.prev_rect)
+    # puts("player prev rect right")
+    # puts(@player.prev_rect.right)
+    tiles_right = find_tiles { |t| t.rect.left >= @player.prev_rect.x }
+    # puts("right collision check; tiles:")
     # puts(tiles_right)
+    # puts("player rect")
+    # puts(@player.rect)
+    # puts("player next rect")
+    # puts(@player.rect.merge x: @player.next_rect.x)
+    collision = find_colliding_tile tiles_right, (@player.rect.merge x: @player.next_rect.x)
+    # puts(collision)
     return unless collision
-    puts("colliding right")
+    # puts("colliding right")
     @player.x  = collision.rect.left - (@player.rect.w * 0.5)
     @player.vx = 0
   end
@@ -350,6 +386,7 @@ class Game
     return unless @player.vy > 0
     tiles_above = find_tiles { |t| t.rect.y >= @player.prev_rect.y }
     collision = find_colliding_tile tiles_above, (@player.rect.merge y: @player.next_rect.y)
+    # puts(collision)
     return unless collision
     @player.vy = 0
     @player.y  = collision.rect.bottom - (@player.rect.h * 0.5)
@@ -365,7 +402,7 @@ class Game
     boost = 1.0;
 
     if inputs.keyboard.key_down.space
-      boost = 100.0;
+      boost = 50.0;
     end
 
     if dir
@@ -389,8 +426,8 @@ class Game
   def move_player
     @player.x += @player.vx
     @player.y += @player.vy
-    @player.x = @player.x.clamp 0, @world.w - @player.w
-    @player.y = @player.y.clamp 0, @world.h - @player.h
+    @player.x = @player.x.clamp @player.w * 0.5, @world.w - (@player.w * 0.5)
+    @player.y = @player.y.clamp @player.h * 0.5, @world.h - (@player.h * 0.5)
   end
 
   def fire_player
@@ -434,7 +471,7 @@ class Game
 
 
   def current_player_rect
-    { x: @player.x, y: @player.y, w: @player.w, h: @player.h, anchor_x: @player.anchor_x, anchor_y: @player.anchor_y}
+    { x: @player.x, y: @player.y, w: @player.w, h: @player.h, anchor_x: @player.anchor_x, anchor_y: @player.anchor_y}.to_hash
   end
 end
 

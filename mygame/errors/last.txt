@@ -1,21 +1,39 @@
-* EXCEPTION:
-* ERROR: :state method missing on ~NilClass~.
+* EXCEPTION POSSIBLY CAUSED BY CALLING ~gtk.reset~: maybe use ~$gtk.reset_next_tick~ instead.
+An exception occurred soon after ~$gtk.reset~ was invoked.
 
-#+begin_src ~NilClass#inspect~
-nil
-#+end_src ~NilClass#inspect~
+Keep in mind that ~$gtk.reset~ doesn't stop the rest of your ~tick~ method from being invoked.
+
+You may have attempted to interact with properties on ~args.state~ that no longer have a value.
+
+There are a few ways to fix exceptions that fall into this category:
+
+1. Wherever you are using ~$gtk.reset~ within ~tick~, replace
+   with ~$gtk.reset_next_tick~ (this function will tell DragonRuby to
+   reset on the next frame before invoking your ~tick~ method).
+2. Anywhere you are using ~$gtk.reset~, immediately set default values for
+   properties on ~args.state~ that are needed to complete the execution
+   of the rest of your ~tick~ function successfully.
+3. Do not use ~$gtk.reset~ and instead create a function that reinitializes your game
+   and ensures it has a consistent/valid state.
+
+   Take a look at the following sample apps for insights on how to do this:
+   - =./samples/99_genre_boss_battle/boss_battle_game_jam/app/main.rb=
+   - =./samples/99_genre_platformer/shadows/app/main.rb=
+
+** NOTE:
+The options above are ordered by quickest to implement (but probably not
+bulletproof), to more work to implement (but a better design long term).
+
+* EXCEPTION THROWN:
+** Failed to load/reload app/main.rb.
+line 141:16: syntax error, unexpected '\n'
+line 141:42: syntax error, unexpected ',', expecting keyword_end
+line 143:18: syntax error, unexpected label, expecting '='
+line 143:36: syntax error, unexpected '}', expecting keyword_end
 
 
 
-The method named
-  :state
-doesn't exist on [NilClass, NilClassFalseClass].
-
-(suggestions above)
 ** Backtrace:
-*** app/main.rb:116:in place_tile
-*** app/main.rb:90:in generate_map
-*** app/main.rb:73:in generate_map
-*** app/main.rb:72:in generate_map
-*** app/main.rb:25:in initialize
-*** app/main.rb:434:in tick
+
+* Backtrace ~$gtk.reset~ last invocation:
+
