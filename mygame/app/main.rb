@@ -225,12 +225,25 @@ class Game
     # this is important to avoid scaling the UI with the scene.
 
     cursor_pos = calc_cursor_in_scene
-    guide_line_left = { x: @player.x, y: @player.y, x2: cursor_pos.x, y2: cursor_pos.y}
+    guide_line_center = { 
+                          x: @player.x, 
+                          y: @player.y, 
+                          x2: cursor_pos.x, 
+                          y2: cursor_pos.y
+                        }
+    line_len = Geometry.distance({ x: @player.x, y: @player.y },cursor_pos)
+    guide_line_left = {
+                        x: @player.x + @player.aim_dir.x * line_len * 0.5, 
+                        y: @player.y + @player.aim_dir.y * line_len * 0.5,
+                        x2: @player.x + @player.aim_dir.x * line_len * 1.2, 
+                        y2: @player.y + @player.aim_dir.y * line_len * 1.2
+                      }
 
     outputs[:scene].background_color = [30, 30, 30]
 
     outputs[:scene].primitives << [@player, @enemies, @bullets, @world.tiles.map(&:sprite)]
 
+    # outputs[:scene].lines << guide_line_center
     outputs[:scene].lines << guide_line_left
 
     outputs[:scene].w = @world.w
@@ -322,6 +335,7 @@ class Game
   def calc_player
     calc_player_v
     calc_player_rect
+    calc_player_aim
     calc_below
     calc_left
     calc_right
@@ -329,6 +343,13 @@ class Game
     move_player
     # fire_player
     # move_player_bullets
+  end
+
+  def calc_player_aim
+    cursor_pos = calc_cursor_in_scene
+    dir = { x: cursor_pos.x - @player.x, y: cursor_pos.y - @player.y }
+    dir = Geometry.vec2_normalize dir
+    @player.aim_dir = dir
   end
   
   def calc_player_rect
@@ -433,9 +454,6 @@ class Game
   end
 
   def fire_player
-    dir = { x: inputs.mouse.x - @player.x, y: inputs.mouse.y - @player.y }
-    dir = Geometry.vec2_normalize dir
-    @player.aim_dir = dir
 
     @player.cooldown -= 1
 
@@ -451,10 +469,10 @@ class Game
     
     # print dir
     @bullets << {
-      x: @player.x + 30 + 40 * dir.x,
-      y: @player.y + 30 + 40 * dir.y,
+      x: @player.x + 30 + 40 * @player.aim_dir.x,
+      y: @player.y + 30 + 40 * @player.aim_dir.y,
       w: 20, h: 20, path: "sprites/circle/solid.png", r: 232, g: 232, b: 232,
-      vx: dir.x * 10 + @player.vx / 7.5, vy: dir.y * 10 + @player.vy / 7.5
+      vx: @player.aim_dir.x * 10 + @player.vx / 7.5, vy: player.aim_dir.y * 10 + @player.vy / 7.5
     }
 
     @player.cooldown = 30
