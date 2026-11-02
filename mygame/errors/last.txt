@@ -1,39 +1,11 @@
-* EXCEPTION POSSIBLY CAUSED BY CALLING ~gtk.reset~: maybe use ~$gtk.reset_next_tick~ instead.
-An exception occurred soon after ~$gtk.reset~ was invoked.
-
-Keep in mind that ~$gtk.reset~ doesn't stop the rest of your ~tick~ method from being invoked.
-
-You may have attempted to interact with properties on ~args.state~ that no longer have a value.
-
-There are a few ways to fix exceptions that fall into this category:
-
-1. Wherever you are using ~$gtk.reset~ within ~tick~, replace
-   with ~$gtk.reset_next_tick~ (this function will tell DragonRuby to
-   reset on the next frame before invoking your ~tick~ method).
-2. Anywhere you are using ~$gtk.reset~, immediately set default values for
-   properties on ~args.state~ that are needed to complete the execution
-   of the rest of your ~tick~ function successfully.
-3. Do not use ~$gtk.reset~ and instead create a function that reinitializes your game
-   and ensures it has a consistent/valid state.
-
-   Take a look at the following sample apps for insights on how to do this:
-   - =./samples/99_genre_boss_battle/boss_battle_game_jam/app/main.rb=
-   - =./samples/99_genre_platformer/shadows/app/main.rb=
-
-** NOTE:
-The options above are ordered by quickest to implement (but probably not
-bulletproof), to more work to implement (but a better design long term).
-
-* EXCEPTION THROWN:
-** Failed to load/reload app/main.rb.
-line 141:16: syntax error, unexpected '\n'
-line 141:42: syntax error, unexpected ',', expecting keyword_end
-line 143:18: syntax error, unexpected label, expecting '='
-line 143:36: syntax error, unexpected '}', expecting keyword_end
+* EXCEPTION:
+* ERROR: Exception while requiring app/main.rb.
+** Failed to load app/main.rb.
+line 232:33: syntax error, unexpected label, expecting '}'
+line 232:47: syntax error, unexpected label, expecting '='
+line 232:70: syntax error, unexpected local variable or method, expecting keyword_end
 
 
 
 ** Backtrace:
-
-* Backtrace ~$gtk.reset~ last invocation:
-
+** Backtrace:
