@@ -2,6 +2,8 @@
 # samples/07_advanced_rendering/07_simple_camera
 # samples/07_advanced_rendering/07_shake_camera
 # samples/07_advanced_rendering/10_camera_and_large_map
+# perlin noise sample
+# box collision 3
 
 # Design goal: high speed but rewards thinking 2 seconds ahead instead of fast
 # reflexes. Reflexes are rewarded but focus needs to be on entering a flow
