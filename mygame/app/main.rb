@@ -35,7 +35,8 @@ class Game
                 path: 'sprites/circle/solid.png',
                 vx: 0,
                 vy: 0,
-                aim_dir: { x: 0, y: 0 },
+                aim_dir: { x: 0, y: 0},
+                aim_deviation: 3.0,
                 health: 10,
                 health_perc: 1.0,
                 cooldown: 0,
@@ -205,7 +206,7 @@ class Game
       x: @camera.x,
       y: @camera.y + 30,
       w: 128,
-      h: 32,
+      h: 16,
       anchor_x: 0.5,
       anchor_y: 0.5,
     ).merge(r: 0, g: 0, b: 0, path: :solid)
@@ -232,11 +233,25 @@ class Game
                           y2: cursor_pos.y
                         }
     line_len = Geometry.distance({ x: @player.x, y: @player.y },cursor_pos)
+
+    aim_angle = Geometry.vec2_angle(@player.aim_dir)
+
+    guide_left_dir = Geometry.angle_vec2(aim_angle + @player.aim_deviation.fdiv(2.0))
+
     guide_line_left = {
-                        x: @player.x + @player.aim_dir.x * line_len * 0.5, 
-                        y: @player.y + @player.aim_dir.y * line_len * 0.5,
-                        x2: @player.x + @player.aim_dir.x * line_len * 1.2, 
-                        y2: @player.y + @player.aim_dir.y * line_len * 1.2
+                        x: @player.x + guide_left_dir.x * line_len * 0.5, 
+                        y: @player.y + guide_left_dir.y * line_len * 0.5,
+                        x2: @player.x + guide_left_dir.x * line_len * 1.2, 
+                        y2: @player.y + guide_left_dir.y * line_len * 1.2
+                      }
+
+    guide_right_dir = Geometry.angle_vec2(aim_angle - @player.aim_deviation.fdiv(2.0))
+
+    guide_line_right = {
+                        x: @player.x + guide_right_dir.x * line_len * 0.5, 
+                        y: @player.y + guide_right_dir.y * line_len * 0.5,
+                        x2: @player.x + guide_right_dir.x * line_len * 1.2, 
+                        y2: @player.y + guide_right_dir.y * line_len * 1.2
                       }
 
     outputs[:scene].background_color = [30, 30, 30]
@@ -245,6 +260,7 @@ class Game
 
     # outputs[:scene].lines << guide_line_center
     outputs[:scene].lines << guide_line_left
+    outputs[:scene].lines << guide_line_right
 
     outputs[:scene].w = @world.w
     outputs[:scene].h = @world.h
@@ -416,8 +432,8 @@ class Game
   end
 
   def calc_player_v
-    dir = inputs.keyboard.directional_vector_wasd ||
-          inputs.controller_one.directional_vector_left_analog_cardinal
+    dir = inputs.keyboard.directional_vector_wasd
+          # || inputs.controller_one.directional_vector_left_analog_cardinal
           # || @on_screen_gamepad_left.dpad_vector
 
     # return if !dir
