@@ -1,20 +1,10 @@
 * EXCEPTION:
-* ERROR: :fdiv method missing on ~NilClass~.
-
-#+begin_src ~NilClass#inspect~
-nil
-#+end_src ~NilClass#inspect~
-
+* ERROR: Exception while requiring app/main.rb.
+** Failed to load app/main.rb.
+line 504:6: syntax error, unexpected local variable or method, expecting '}'
+line 513:1: syntax error, unexpected '}', expecting keyword_end
 
 
-The method named
-  :fdiv
-with args
-  [2.0]
-doesn't exist on [NilClass, NilClassFalseClass].
 
-(suggestions above)
 ** Backtrace:
-*** app/main.rb:239:in render
-*** app/main.rb:59:in tick
-*** app/main.rb:508:in tick
+** Backtrace:

@@ -36,10 +36,11 @@ class Game
                 vx: 0,
                 vy: 0,
                 aim_dir: { x: 0, y: 0},
-                aim_deviation: 3.0,
+                aim_deviation: 1.5, # should be half the cone
                 health: 10,
                 health_perc: 1.0,
                 cooldown: 0,
+                boost_cooldown: 0,
                 score: 0 }
     # camera x and y correspond to the player's position on camera
     @camera = { x: 640, y: 360, scale: 1.0 }
@@ -52,10 +53,10 @@ class Game
   def tick
     # @on_screen_gamepad_left.tick
     # @on_screen_gamepad_right.tick
-    # calc_enemies
     # generate_collision_test_map unless $map_loaded
     generate_perlin_map unless $map_loaded
     calc_player
+    calc_enemies
     render
     calc_game_over
     # input_edit_map
@@ -236,27 +237,31 @@ class Game
 
     aim_angle = Geometry.vec2_angle(@player.aim_dir)
 
-    guide_left_dir = Geometry.angle_vec2(aim_angle + @player.aim_deviation.fdiv(2.0))
+    guide_left_dir = Geometry.angle_vec2(aim_angle + @player.aim_deviation)
 
     guide_line_left = {
                         x: @player.x + guide_left_dir.x * line_len * 0.5, 
                         y: @player.y + guide_left_dir.y * line_len * 0.5,
                         x2: @player.x + guide_left_dir.x * line_len * 1.2, 
-                        y2: @player.y + guide_left_dir.y * line_len * 1.2
+                        y2: @player.y + guide_left_dir.y * line_len * 1.2,
+                        r: 102, g: 255, b: 51
                       }
 
-    guide_right_dir = Geometry.angle_vec2(aim_angle - @player.aim_deviation.fdiv(2.0))
+    guide_right_dir = Geometry.angle_vec2(aim_angle - @player.aim_deviation)
 
     guide_line_right = {
                         x: @player.x + guide_right_dir.x * line_len * 0.5, 
                         y: @player.y + guide_right_dir.y * line_len * 0.5,
                         x2: @player.x + guide_right_dir.x * line_len * 1.2, 
-                        y2: @player.y + guide_right_dir.y * line_len * 1.2
+                        y2: @player.y + guide_right_dir.y * line_len * 1.2,
+                        r: 102, g: 255, b: 51
                       }
 
     outputs[:scene].background_color = [30, 30, 30]
 
-    outputs[:scene].primitives << [@player, @enemies, @bullets, @world.tiles.map(&:sprite)]
+    outputs[:scene].primitives << [@player, @enemies]
+
+    outputs[:scene].sprites << [@bullets, @world.tiles.map(&:sprite), @bullets.map(&:tracer)]
 
     # outputs[:scene].lines << guide_line_center
     outputs[:scene].lines << guide_line_left
@@ -303,6 +308,13 @@ class Game
               y: @player.y + (inputs.mouse.y - @camera.y)}
     return result
   end
+
+  def calc_enemies
+    # spawn_enemies
+    kill_enemies
+    move_enemies
+  end
+
 
   def spawn_enemies
     should_spawn_enemy ||= Kernel.tick_count == 0
@@ -357,8 +369,8 @@ class Game
     calc_right
     calc_above
     move_player
-    # fire_player
-    # move_player_bullets
+    fire_player
+    move_player_bullets
   end
 
   def calc_player_aim
@@ -439,9 +451,11 @@ class Game
     # return if !dir
 
     boost = 1.0;
+    @player.boost_cooldown -= 1;
 
-    if inputs.keyboard.key_down.space
+    if inputs.keyboard.key_down.left_shift && @player.boost_cooldown <= 0
       boost = 50.0;
+      boost_cooldown = 120;
     end
 
     if dir
@@ -449,9 +463,9 @@ class Game
       @player.vy += dir.y * 0.75 * boost
     end
 
-    friction_factor = 0.9;
+    friction_factor = 0.87;
 
-    if inputs.keyboard.key_held.shift
+    if inputs.keyboard.key_held.space
       friction_factor = 1.0;
     end
 
@@ -475,23 +489,48 @@ class Game
 
     return if @player.cooldown > 0
 
+    @player.aim_deviation -= 0.2 unless @player.aim_deviation < 1.5
+
+    @player.aim_deviation = 1.5 if @player.aim_deviation < 1.5
+
     # dir = inputs.keyboard.directional_vector_arrow ||
     #       inputs.controller_one.directional_vector_right_analog_cardinal
     #       # || @on_screen_gamepad_right.dpad_vector
 
-    # return if !inputs.mouse.button_left
+    return if !inputs.mouse.button_left
     # outputs.debug << "this is a debug output"
 
-    
-    # print dir
-    @bullets << {
-      x: @player.x + 30 + 40 * @player.aim_dir.x,
-      y: @player.y + 30 + 40 * @player.aim_dir.y,
-      w: 20, h: 20, path: "sprites/circle/solid.png", r: 232, g: 232, b: 232,
-      vx: @player.aim_dir.x * 10 + @player.vx / 7.5, vy: player.aim_dir.y * 10 + @player.vy / 7.5
+    bullet_speed = 60.0
+    player_momentum_quotient = 7.5
+    bullet_angle = Geometry.vec2_angle(@player.aim_dir) + Numeric.rand((@player.aim_deviation * -1.0)..@player.aim_deviation)
+    bullet_dir = Geometry.angle_vec2(bullet_angle)
+    bullet = {
+      x: @player.x + @player.w * bullet_dir.x * 0.5,
+      y: @player.y + @player.h * bullet_dir.y * 0.5,
+      anchor_x: 0.5, anchor_y: 0.5,
+      w: 5, h: 5, path: "sprites/circle/solid.png", r: 232, g: 232, b: 232,
+      vx: bullet_dir.x * bullet_speed + @player.vx / player_momentum_quotient,
+      vy: bullet_dir.y * bullet_speed + @player.vy / player_momentum_quotient,
     }
+    bullet_vel = { x: bullet.vx, y: bullet.vy }
+    bullet_speed = Geometry.vec2_magnitude(bullet_vel)
+    bullet.tracer = {
+                x: bullet.x,
+                y: bullet.y,
+                anchor_x: 1.0, anchor_y: 0.5,
+                angle: Geometry.vec2_angle(bullet_vel),
+                angle_anchor_x: 1.0, angle_anchor_y: 0.5,
+                w: 2.0 * bullet_speed, h: 5, path: "sprites/circle/solid.png", r: 255, g: 255, b: 96
+              }
+    # print dir
+    @bullets << bullet
 
-    @player.cooldown = 30
+    @player.aim_deviation += 0.5
+
+    @player.vx += bullet_dir.x * 5.0 * -1
+    @player.vy += bullet_dir.y * 5.0 * -1
+
+    @player.cooldown = 5
   end
 
   def move_player_bullets
@@ -501,7 +540,16 @@ class Game
     end
 
     @bullets.reject! do |bullet|
-      bullet.x < -20 || bullet.y < -20 || bullet.x > 1300 || bullet.y > 740
+      bullet.x < -100 || bullet.y < -100 || bullet.x > @world.w + 100 || bullet.y > @world.h + 100
+    end
+
+    @bullets.each do |bullet|
+      bullet_vel = { x: bullet.vx, y: bullet.vy }
+      bullet_speed = Geometry.vec2_magnitude(bullet_vel)
+      bullet.tracer.x = bullet.x
+      bullet.tracer.y = bullet.y
+      bullet.tracer.angle = Geometry.vec2_angle(bullet_vel)
+      bullet.tracer.w = 2.0 * bullet_speed
     end
   end
 
