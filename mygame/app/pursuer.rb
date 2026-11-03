@@ -23,6 +23,7 @@ class Pursuer
         }
     end
 
-    def update args 
+    def update args
+        
     end
 end
