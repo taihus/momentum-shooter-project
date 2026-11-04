@@ -30,7 +30,7 @@ class Game
   end
 
   def reset_game
-    # @world  = { w: 1280, h: 720 }
+    # $world  = { w: 1280, h: 720 }
     @player = { x: 100, y: 100, w: 20, h: 20,
                 anchor_x: 0.5,
                 anchor_y: 0.5,
@@ -71,7 +71,7 @@ class Game
   end
 
   def generate_collision_test_map
-    @world  = { w: 400, h: 400,
+    $world  = { w: 400, h: 400,
                 tile_size: 32,
                 tiles: [] }
     # place_tile({ x: 6, y: 3 })
@@ -91,16 +91,16 @@ class Game
   end
 
   def generate_perlin_map
-    @world  = { w: 3600, h: 1200,
+    $world  = { w: 3600, h: 1200,
                 tile_size: 32,
                 tiles: [] }
-    tile_width = @world.w.idiv(@world.tile_size)
-    tile_height = @world.h.idiv(@world.tile_size)
+    tile_width = $world.w.idiv($world.tile_size)
+    tile_height = $world.h.idiv($world.tile_size)
     tile_width.times do |x|
       tile_height.times do |y|
         ordinal = { x: x , y: y }
-        normalized_x = (x - @world.w.idiv(2)).fdiv(@world.w)
-        normalized_y = (y - @world.h.idiv(2)).fdiv(@world.h)
+        normalized_x = (x - $world.w.idiv(2)).fdiv($world.w)
+        normalized_y = (y - $world.h.idiv(2)).fdiv($world.h)
         normalized_z = 0
         lacunarity = 7.0
         gain = 0.6
@@ -130,8 +130,8 @@ class Game
 
     cursor_in_scene = calc_cursor_in_scene
 
-    ordinal = { x: (cursor_in_scene.x.idiv @world.tile_size),
-                y: (cursor_in_scene.y.idiv @world.tile_size) }
+    ordinal = { x: (cursor_in_scene.x.idiv $world.tile_size),
+                y: (cursor_in_scene.y.idiv $world.tile_size) }
 
     place_tile ordinal
     recompute_tiles
@@ -140,28 +140,28 @@ class Game
   def place_tile ordinal
     found = find_tile ordinal
     if !found
-      @world.tiles << state.new_entity(:tile).merge(ordinal)
+      $world.tiles << state.new_entity(:tile).merge(ordinal)
     end
   end
 
   def recompute_tiles
-    @world.tiles.each do |t|
-      t.w = @world.tile_size
-      t.h = @world.tile_size
-      t.neighbors = tile_neighbors t, @world.tiles
+    $world.tiles.each do |t|
+      t.w = $world.tile_size
+      t.h = $world.tile_size
+      t.neighbors = tile_neighbors t, $world.tiles
 
-      t.rect = {x: t.x * @world.tile_size,
-                y: t.y * @world.tile_size,
-                w: @world.tile_size,
-                h: @world.tile_size}.to_hash
+      t.rect = {x: t.x * $world.tile_size,
+                y: t.y * $world.tile_size,
+                w: $world.tile_size,
+                h: $world.tile_size}.to_hash
 
       sprite_sub_path = t.neighbors.mask.map { |m| flip_bit m }.join("")
 
       t.sprite = {
-        x: t.x * @world.tile_size,
-        y: t.y * @world.tile_size,
-        w: @world.tile_size,
-        h: @world.tile_size,
+        x: t.x * $world.tile_size,
+        y: t.y * $world.tile_size,
+        w: $world.tile_size,
+        h: $world.tile_size,
         path: "sprites/tile/wall-#{sprite_sub_path}.png"
       }
     end
@@ -173,11 +173,11 @@ class Game
   end
 
   def find_tile ordinal
-    @world.tiles.find { |t| t.x == ordinal.x && t.y == ordinal.y }
+    $world.tiles.find { |t| t.x == ordinal.x && t.y == ordinal.y }
   end
 
   def find_tiles &block
-    @world.tiles.find_all(&block)
+    $world.tiles.find_all(&block)
   end
 
   def find_colliding_tile tiles, target
@@ -260,17 +260,19 @@ class Game
                       }
 
     outputs[:scene].background_color = [30, 30, 30]
+    
+    # puts("#{@enemies.map { |e| e.getSprite}}")
+    outputs[:scene].primitives << [@player, @enemies.map{ |e| e.getSprite }]
+    # puts("#{outputs[:scene].primitives}")
 
-    outputs[:scene].primitives << [@player, @enemies]
-
-    outputs[:scene].sprites << [@bullets, @world.tiles.map(&:sprite), @bullets.map(&:tracer)]
+    outputs[:scene].sprites << [@bullets, $world.tiles.map(&:sprite), @bullets.map(&:tracer)]
 
     # outputs[:scene].lines << guide_line_center
     outputs[:scene].lines << guide_line_left
     outputs[:scene].lines << guide_line_right
 
-    outputs[:scene].w = @world.w
-    outputs[:scene].h = @world.h
+    outputs[:scene].w = $world.w
+    outputs[:scene].h = $world.h
 
     scene_position = calc_scene_position
     outputs.sprites << { x: scene_position.x,
@@ -298,8 +300,8 @@ class Game
   def calc_scene_position
     result = {  x: @camera.x - (@player.x * @camera.scale),
                 y: @camera.y - (@player.y * @camera.scale),
-                w: @world.w * @camera.scale,
-                h: @world.h * @camera.scale,
+                w: $world.w * @camera.scale,
+                h: $world.h * @camera.scale,
                 scale: @camera.scale }
 
     return result
@@ -312,7 +314,7 @@ class Game
   end
 
   def calc_enemies
-    # spawn_enemies
+    spawn_enemies
     kill_enemies
     move_enemies
   end
@@ -324,19 +326,32 @@ class Game
     return if !should_spawn_enemy
 
     angle = rand 360
-    @enemies << {
-      x: 600 + angle.vector_x * 800,
-      y: 320 + angle.vector_y * 800,
-      w: 80, h: 80, path: "sprites/circle/solid.png",
-      r: 128 + rand(128), g: 128 + rand(128), b: 128 + rand(128)
-    }
+    enemy_xpos = @player.x + angle.vector_x * 800
+    enemy_ypos = @player.y + angle.vector_y * 800
+    puts("spawning #{enemy_xpos}, #{enemy_ypos}")
+    ordinal = {x: enemy_xpos, y: enemy_ypos}
+    @enemies << Pursuer.new(ordinal, -1)
+    # @enemies << {
+    #   x: 600 + angle.vector_x * 800,
+    #   y: 320 + angle.vector_y * 800,
+    #   w: 80, h: 80, path: "sprites/circle/solid.png",
+    #   r: 128 + rand(128), g: 128 + rand(128), b: 128 + rand(128)
+    # }
   end
 
   def kill_enemies
-    enemy_collision = Geometry.find_intersect_rect(@player, @enemies)
-    if enemy_collision
-      @enemies.delete enemy_collision
-      @player.health -= 1
+    # enemy_collision = Geometry.find_intersect_rect(@player, @enemies.map { |e| e.getRect})
+    # if enemy_collision
+    #   puts("#{enemy_collision}")
+    #   @enemies.delete enemy_collision.parent
+    #   puts("#{enemy_collision.parent}")
+    #   @player.health -= 1
+    # end
+    @enemies.each do |enemy|
+      if Geometry.intersect_rect?(@player, enemy.getRect)
+        @enemies.delete enemy
+        @player.health -= 1
+      end
     end
 
     @bullets.each do |bullet|
@@ -356,9 +371,8 @@ class Game
 
   def move_enemies
     @enemies.each do |enemy|
-      angle = Geometry.angle @player, enemy
-      enemy.x -= angle.vector_x * 2.5
-      enemy.y -= angle.vector_y * 2.5
+      # puts("moving #{enemy}")
+      enemy.update @player, @world
     end
   end
 
@@ -481,8 +495,8 @@ class Game
   def move_player
     @player.x += @player.vx
     @player.y += @player.vy
-    @player.x = @player.x.clamp @player.w * 0.5, @world.w - (@player.w * 0.5)
-    @player.y = @player.y.clamp @player.h * 0.5, @world.h - (@player.h * 0.5)
+    @player.x = @player.x.clamp @player.w * 0.5, $world.w - (@player.w * 0.5)
+    @player.y = @player.y.clamp @player.h * 0.5, $world.h - (@player.h * 0.5)
   end
 
   def fire_player
@@ -542,7 +556,7 @@ class Game
     end
 
     @bullets.reject! do |bullet|
-      bullet.x < -100 || bullet.y < -100 || bullet.x > @world.w + 100 || bullet.y > @world.h + 100
+      bullet.x < -100 || bullet.y < -100 || bullet.x > $world.w + 100 || bullet.y > $world.h + 100
     end
 
     @bullets.each do |bullet|
@@ -554,7 +568,6 @@ class Game
       bullet.tracer.w = 2.0 * bullet_speed
     end
   end
-
 
   def current_player_rect
     { x: @player.x, y: @player.y, w: @player.w, h: @player.h, anchor_x: @player.anchor_x, anchor_y: @player.anchor_y}.to_hash

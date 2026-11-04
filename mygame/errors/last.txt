@@ -1,10 +1,14 @@
 * EXCEPTION:
 * ERROR: Exception while requiring app/main.rb.
-** Failed to load app/main.rb.
-line 504:6: syntax error, unexpected local variable or method, expecting '}'
-line 513:1: syntax error, unexpected '}', expecting keyword_end
+* ERROR: Exception while requiring app/pursuer.rb.
+** Failed to load app/pursuer.rb.
+line 37:27: syntax error, unexpected local variable or method
+line 44:3: syntax error, unexpected keyword_end, expecting end of file
 
 
 
 ** Backtrace:
+*** app/main.rb:1
+** Backtrace:
+*** app/main.rb:1
 ** Backtrace:
