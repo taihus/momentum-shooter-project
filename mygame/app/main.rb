@@ -21,6 +21,7 @@ require 'app/pursuer.rb'
 
 class Game
   attr_dr
+  attr_accessor :time_factor, :world, :enemies
 
   def initialize args
     # @on_screen_gamepad_left = OnScreenGamepad.new args.inputs, side: :left
@@ -31,6 +32,7 @@ class Game
 
   def reset_game
     $world  = { w: 1280, h: 720 }
+    @time_factor = 1.0
     @player = { x: 100, y: 100, w: 20, h: 20,
                 anchor_x: 0.5,
                 anchor_y: 0.5,
@@ -92,7 +94,7 @@ class Game
   end
 
   def generate_blank_map
-    $world  = { w: 2400, h: 1200,
+    $world  = { w: 4800, h: 4800,
                 tile_size: 32,
                 tiles: [] }
     recompute_tiles
@@ -238,12 +240,12 @@ class Game
     # this is important to avoid scaling the UI with the scene.
 
     cursor_pos = calc_cursor_in_scene
-    guide_line_center = { 
-                          x: @player.x, 
-                          y: @player.y, 
-                          x2: cursor_pos.x, 
-                          y2: cursor_pos.y
-                        }
+    # guide_line_center = { 
+    #                       x: @player.x, 
+    #                       y: @player.y, 
+    #                       x2: cursor_pos.x, 
+    #                       y2: cursor_pos.y
+    #                     }
     line_len = Geometry.distance({ x: @player.x, y: @player.y },cursor_pos)
 
     aim_angle = Geometry.vec2_angle(@player.aim_dir)
@@ -331,7 +333,7 @@ class Game
 
   def spawn_enemies
     should_spawn_enemy ||= Kernel.tick_count == 0
-    should_spawn_enemy ||= Kernel.tick_count.zmod?(@spawn_timer.clamp(30, 120))
+    should_spawn_enemy ||= Kernel.tick_count.zmod?(@spawn_timer.clamp(30 * (1.0 + time_factor), 120 * (1.0 + time_factor)))
     return if !should_spawn_enemy
 
     angle = rand 360
@@ -378,8 +380,7 @@ class Game
 
   def move_enemies
     @enemies.each do |enemy|
-      # puts("moving #{enemy}")
-      enemy.update @player, @world
+      enemy.update @player, $game
     end
   end
 
@@ -500,19 +501,21 @@ class Game
   # idea: movement works differently in boost mode?
   # or do we just clamp the max speed attainable with walking?
   def move_player
-    @player.x += @player.vx
-    @player.y += @player.vy
+    @time_factor = 0.5 if inputs.mouse.button_right
+    @time_factor = 1.0 if !inputs.mouse.button_right
+    @player.x += @player.vx * @time_factor
+    @player.y += @player.vy * @time_factor
     @player.x = @player.x.clamp @player.w * 0.5, $world.w - (@player.w * 0.5)
     @player.y = @player.y.clamp @player.h * 0.5, $world.h - (@player.h * 0.5)
   end
 
   def fire_player
 
-    @player.cooldown -= 1
+    @player.cooldown -= 1 * @time_factor
 
     return if @player.cooldown > 0
 
-    @player.aim_deviation -= 0.2 unless @player.aim_deviation < 1.5
+    @player.aim_deviation -= 0.2 * @time_factor unless @player.aim_deviation < 1.5
 
     @player.aim_deviation = 1.5 if @player.aim_deviation < 1.5
 
@@ -558,8 +561,8 @@ class Game
 
   def move_player_bullets
     @bullets.each do |bullet|
-      bullet.x += bullet.vx
-      bullet.y += bullet.vy
+      bullet.x += bullet.vx * time_factor
+      bullet.y += bullet.vy * time_factor
     end
 
     @bullets.reject! do |bullet|

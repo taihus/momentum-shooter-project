@@ -1,19 +1,21 @@
 * EXCEPTION:
-* ERROR: :parent method missing on ~Pursuer~.
+* ERROR: :time_factor method missing on ~Game~.
 
-#+begin_src ~Pursuer#inspect~
-#<Pursuer:0x1902a340230 @state="patrol", @h=16, @x=173.5425324205768, @angle=382.0948084093546, @velocity={:x=>0.0, :y=>0.0}, @anchor_x=0.5, @anchor_y=0.5, @w=16, @squad=-1, @y=82.30049919378516>
-#+end_src ~Pursuer#inspect~
+#+begin_src ~Game#inspect~
+#<Game:0x1d873989a30 @bullets=[], @player={:x=>100.0, :y=>100.0, :w=>20, :h=>20, :anchor_x=>0.5, :anchor_y=>0.5, :path=>"sprites/circle/solid.png", :vx=>0.0, :vy=>0.0, :aim_dir=>{:x=>-0.997154964733507, :y=>-0.07537888502305128}, :aim_deviation=>1.5, :health=>10, :health_perc=>1.0, :cooldown=>-1, :boost_cooldown=>-1, :score=>0, :rect=>{:x=>100, :y=>100, :w=>20, :h=>20, :anchor_x=>0.5, :anchor_y=>0.5}, :next_rect=>{:x=>100.0, :y=>100.0, :w=>20, :h=>20, :anchor_x=>0.5, :anchor_y=>0.5}, :prev_rect=>{:x=>100.0, :y=>100.0, :w=>20, :h=>20, :anchor_x=>0.5, :anchor_y=>0.5}}, @camera={:x=>640, :y=>360, :scale=>1.0}, @args=#<GTK::Args:0x1d8614f8a70>, @time_factor=1.0, @enemies=[#<Pursuer:0x1d873987450 @state="patrol", @h=16, @x=860.8452130361228, @angle=432.0, @squad=-1, @anchor_x=0.5, @anchor_y=0.5, @velocity={:x=>0.0, :y=>0.0}, @w=16, @y=-147.2135954999582>], @inputs=#<GTK::Inputs:0x1d8614f89e0>, @spawn_timer=120>
+#+end_src ~Game#inspect~
 
 
 
 The method named
-  :parent
-doesn't exist on [Pursuer, #<Class:#<Pursuer:0x1902a340230>>, AttrDR].
+  :time_factor
+doesn't exist on [Game, #<Class:#<Game:0x1d873989a30>>, AttrDR].
 
 (suggestions above)
 ** Backtrace:
-*** app/main.rb:346:in kill_enemies
-*** app/main.rb:318:in calc_enemies
-*** app/main.rb:61:in tick
-*** app/main.rb:581:in tick
+*** app/pursuer.rb:35:in update
+*** app/main.rb:382:in move_enemies
+*** app/main.rb:381:in move_enemies
+*** app/main.rb:329:in calc_enemies
+*** app/main.rb:63:in tick
+*** app/main.rb:588:in tick

@@ -27,13 +27,13 @@ class Pursuer
         }
     end
 
-    def update player, world
+    def update player, game
       case @state
       when "patrol"
         angle = Geometry.angle player, { x: @x, y: @y}
         @angle = angle + 90
-        @x -= angle.vector_x * 2.5
-        @y -= angle.vector_y * 2.5
+        @x -= angle.vector_x * 2.5 * game.time_factor
+        @y -= angle.vector_y * 2.5 * game.time_factor
     #   puts("moving enemy towards #{@x}, #{@y}")
       else
         puts("oh no")
