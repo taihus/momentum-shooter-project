@@ -30,7 +30,7 @@ class Game
   end
 
   def reset_game
-    # $world  = { w: 1280, h: 720 }
+    $world  = { w: 1280, h: 720 }
     @player = { x: 100, y: 100, w: 20, h: 20,
                 anchor_x: 0.5,
                 anchor_y: 0.5,
@@ -56,7 +56,8 @@ class Game
     # @on_screen_gamepad_left.tick
     # @on_screen_gamepad_right.tick
     # generate_collision_test_map unless $map_loaded
-    generate_perlin_map unless $map_loaded
+    # generate_perlin_map unless $map_loaded
+    generate_blank_map unless $map_loaded
     calc_player
     calc_enemies
     render
@@ -90,8 +91,16 @@ class Game
     $map_loaded = true
   end
 
+  def generate_blank_map
+    $world  = { w: 2400, h: 1200,
+                tile_size: 32,
+                tiles: [] }
+    recompute_tiles
+    $map_loaded = true;
+  end
+
   def generate_perlin_map
-    $world  = { w: 3600, h: 1200,
+    $world  = { w: 2400, h: 1200,
                 tile_size: 32,
                 tiles: [] }
     tile_width = $world.w.idiv($world.tile_size)
@@ -262,7 +271,7 @@ class Game
     outputs[:scene].background_color = [30, 30, 30]
     
     # puts("#{@enemies.map { |e| e.getSprite}}")
-    outputs[:scene].primitives << [@player, @enemies.map{ |e| e.getSprite }]
+    outputs[:scene].primitives << [@player, @enemies.map { |e| e.getSprite}]
     # puts("#{outputs[:scene].primitives}")
 
     outputs[:scene].sprites << [@bullets, $world.tiles.map(&:sprite), @bullets.map(&:tracer)]
@@ -340,19 +349,17 @@ class Game
   end
 
   def kill_enemies
-    # enemy_collision = Geometry.find_intersect_rect(@player, @enemies.map { |e| e.getRect})
-    # if enemy_collision
-    #   puts("#{enemy_collision}")
-    #   @enemies.delete enemy_collision.parent
-    #   puts("#{enemy_collision.parent}")
-    #   @player.health -= 1
-    # end
-    @enemies.each do |enemy|
-      if Geometry.intersect_rect?(@player, enemy.getRect)
-        @enemies.delete enemy
-        @player.health -= 1
-      end
+    enemy_collision = Geometry.find_intersect_rect(@player, @enemies)
+    if enemy_collision
+      @enemies.delete enemy_collision
+      @player.health -= 1
     end
+    # @enemies.each do |enemy|
+    #   if Geometry.intersect_rect?(@player, enemy.getRect)
+    #     @enemies.delete enemy
+    #     @player.health -= 1
+    #   end
+    # end
 
     @bullets.each do |bullet|
       bullet_collision = Geometry.find_intersect_rect(bullet, @enemies)
@@ -536,7 +543,7 @@ class Game
                 anchor_x: 1.0, anchor_y: 0.5,
                 angle: Geometry.vec2_angle(bullet_vel),
                 angle_anchor_x: 1.0, angle_anchor_y: 0.5,
-                w: 2.0 * bullet_speed, h: 5, path: "sprites/circle/solid.png", r: 255, g: 255, b: 96
+                w: 2.0 * bullet_speed, h: 5, path: "sprites/circle/solid.png", r: 255, g: 255, b: 96, a: 120
               }
     # print dir
     @bullets << bullet
@@ -576,17 +583,17 @@ end
 
 module Main
   def tick
-    @game ||= Game.new args
-    @game.args = args
-    @game.tick
+    $game ||= Game.new args
+    $game.args = args
+    $game.tick
   end
 
   def boot
-    @state = {}
+    $state = {}
   end
 
   def reset
-    @game = nil
+    $game = nil
   end
 end
 

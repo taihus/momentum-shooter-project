@@ -1,14 +1,19 @@
 * EXCEPTION:
-* ERROR: Exception while requiring app/main.rb.
-* ERROR: Exception while requiring app/pursuer.rb.
-** Failed to load app/pursuer.rb.
-line 37:27: syntax error, unexpected local variable or method
-line 44:3: syntax error, unexpected keyword_end, expecting end of file
+* ERROR: :parent method missing on ~Pursuer~.
+
+#+begin_src ~Pursuer#inspect~
+#<Pursuer:0x1902a340230 @state="patrol", @h=16, @x=173.5425324205768, @angle=382.0948084093546, @velocity={:x=>0.0, :y=>0.0}, @anchor_x=0.5, @anchor_y=0.5, @w=16, @squad=-1, @y=82.30049919378516>
+#+end_src ~Pursuer#inspect~
 
 
 
+The method named
+  :parent
+doesn't exist on [Pursuer, #<Class:#<Pursuer:0x1902a340230>>, AttrDR].
+
+(suggestions above)
 ** Backtrace:
-*** app/main.rb:1
-** Backtrace:
-*** app/main.rb:1
-** Backtrace:
+*** app/main.rb:346:in kill_enemies
+*** app/main.rb:318:in calc_enemies
+*** app/main.rb:61:in tick
+*** app/main.rb:581:in tick
