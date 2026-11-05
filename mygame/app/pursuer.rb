@@ -6,8 +6,8 @@ class Pursuer
     def initialize ordinal, squad
         @x = ordinal.x
         @y = ordinal.y
-        @w = 16
-        @h = 16
+        @w = 32
+        @h = 32
         @angle = 0
         @velocity = { x: 0.0, y: 0.0 }
         @squad = squad

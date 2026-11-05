@@ -33,6 +33,7 @@ class Game
   def reset_game
     $world  = { w: 1280, h: 720 }
     @time_factor = 1.0
+    $squad_size = 8
     $squad_id = 0
     @player = { x: 100, y: 100, w: 20, h: 20,
                 anchor_x: 0.5,
@@ -49,7 +50,7 @@ class Game
                 score: 0 }
     # camera x and y correspond to the player's position on camera
     @camera = { x: 640, y: 360, scale: 1.0 }
-    @spawn_timer = 120
+    @spawn_timer = 180
     @enemies = []
     @bullets = []
     $map_loaded = false
@@ -331,10 +332,9 @@ class Game
     move_enemies
   end
 
-  # TODO spawn in squads
   def spawn_enemies
     should_spawn_enemy ||= Kernel.tick_count == 0
-    should_spawn_enemy ||= Kernel.tick_count.zmod?(@spawn_timer.clamp(30 * (1.0 + time_factor), 120 * (1.0 + time_factor)))
+    should_spawn_enemy ||= Kernel.tick_count.zmod?(@spawn_timer.clamp(30 * (1.0 + time_factor), 180 * (1.0 + time_factor)))
     return if !should_spawn_enemy
 
     angle = rand 360
@@ -342,7 +342,16 @@ class Game
     enemy_ypos = @player.y + angle.vector_y * 800
     # puts("spawning #{enemy_xpos}, #{enemy_ypos}")
     ordinal = {x: enemy_xpos, y: enemy_ypos}
-    @enemies << Pursuer.new(ordinal, -1)
+    num_spawned = 0
+    while num_spawned < $squad_size
+      @enemies << Pursuer.new(ordinal, $squad_id)
+      delta_x = 50 * Numeric.rand(0..2)
+      delta_y = 50 * Numeric.rand(0..2) while delta_x == 0 && delta_y == delta_x
+      ordinal.x += delta_x
+      ordinal.y += delta_y
+      num_spawned += 1
+    end
+    $squad_id += 1
     # @enemies << {
     #   x: 600 + angle.vector_x * 800,
     #   y: 320 + angle.vector_y * 800,
@@ -372,7 +381,7 @@ class Game
       bullet.kills ||= 0
       bullet.kills += 1
       @player.score += bullet.kills
-      @spawn_timer -= bullet.kills * 2
+      @spawn_timer -= bullet.kills * (2.0 / $squad_size)
       @player.health += 1 if @player.health < 10 && bullet.kills > 1
     end
 
@@ -558,10 +567,10 @@ class Game
     # print dir
     @bullets << bullet
 
-    @player.aim_deviation += 0.5
+    @player.aim_deviation += 0.5 * (3.0 / @player.aim_deviation)
 
-    @player.vx += bullet_dir.x * 5.0 * -1
-    @player.vy += bullet_dir.y * 5.0 * -1
+    @player.vx += bullet_dir.x * 2.0 * -1
+    @player.vy += bullet_dir.y * 2.0 * -1
 
     @player.cooldown = 5
   end

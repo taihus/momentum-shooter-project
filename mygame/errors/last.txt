@@ -1,21 +1,30 @@
-* EXCEPTION:
-* ERROR: :time_factor method missing on ~Game~.
+* EXCEPTION POSSIBLY CAUSED BY CALLING ~rand~ with ~Range~ parameter: Use ~Numeric.rand~ instead.
+The exception message hints at a common error of invoking ~rand~ with a ~Range~ parameter.
+DragonRuby's ~Kernel.rand~ function does NOT support arguments of type ~Range~ (DragonRuby
+leverages mRuby's ~rand~ implementation which doesn't support ~Range~).
 
-#+begin_src ~Game#inspect~
-#<Game:0x1d873989a30 @bullets=[], @player={:x=>100.0, :y=>100.0, :w=>20, :h=>20, :anchor_x=>0.5, :anchor_y=>0.5, :path=>"sprites/circle/solid.png", :vx=>0.0, :vy=>0.0, :aim_dir=>{:x=>-0.997154964733507, :y=>-0.07537888502305128}, :aim_deviation=>1.5, :health=>10, :health_perc=>1.0, :cooldown=>-1, :boost_cooldown=>-1, :score=>0, :rect=>{:x=>100, :y=>100, :w=>20, :h=>20, :anchor_x=>0.5, :anchor_y=>0.5}, :next_rect=>{:x=>100.0, :y=>100.0, :w=>20, :h=>20, :anchor_x=>0.5, :anchor_y=>0.5}, :prev_rect=>{:x=>100.0, :y=>100.0, :w=>20, :h=>20, :anchor_x=>0.5, :anchor_y=>0.5}}, @camera={:x=>640, :y=>360, :scale=>1.0}, @args=#<GTK::Args:0x1d8614f8a70>, @time_factor=1.0, @enemies=[#<Pursuer:0x1d873987450 @state="patrol", @h=16, @x=860.8452130361228, @angle=432.0, @squad=-1, @anchor_x=0.5, @anchor_y=0.5, @velocity={:x=>0.0, :y=>0.0}, @w=16, @y=-147.2135954999582>], @inputs=#<GTK::Inputs:0x1d8614f89e0>, @spawn_timer=120>
-#+end_src ~Game#inspect~
+In lieu of overriding ~Kernel.rand~, DragonRuby provides ~Numeric.rand~ which supports ranges.
 
+Instead of:
 
+#+begin_src
+  # Kernel.rand function used
+  #   Ranges not supported/possible reason for exception
+  rand(-10..10)
+#+end_src
 
-The method named
-  :time_factor
-doesn't exist on [Game, #<Class:#<Game:0x1d873989a30>>, AttrDR].
+Do this:
 
-(suggestions above)
+#+begin_src
+  # Numeric.rand function used
+  #   Ranges supported
+  Numeric.rand(-10..10)
+#+end_src
+
+* EXCEPTION THROWN:
+can't convert Range to Integer
 ** Backtrace:
-*** app/pursuer.rb:35:in update
-*** app/main.rb:382:in move_enemies
-*** app/main.rb:381:in move_enemies
-*** app/main.rb:329:in calc_enemies
-*** app/main.rb:63:in tick
-*** app/main.rb:588:in tick
+*** app/main.rb:349:in spawn_enemies
+*** app/main.rb:330:in calc_enemies
+*** app/main.rb:66:in tick
+*** app/main.rb:606:in tick
