@@ -27,6 +27,8 @@ class Pursuer
         }
     end
 
+    # TODO update patrol to integrate boids behavior
+    # TODO implement framework for state machine
     def update player, game
       case @state
       when "patrol"

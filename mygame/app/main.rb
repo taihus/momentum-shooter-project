@@ -33,6 +33,7 @@ class Game
   def reset_game
     $world  = { w: 1280, h: 720 }
     @time_factor = 1.0
+    $squad_id = 0
     @player = { x: 100, y: 100, w: 20, h: 20,
                 anchor_x: 0.5,
                 anchor_y: 0.5,
@@ -330,7 +331,7 @@ class Game
     move_enemies
   end
 
-
+  # TODO spawn in squads
   def spawn_enemies
     should_spawn_enemy ||= Kernel.tick_count == 0
     should_spawn_enemy ||= Kernel.tick_count.zmod?(@spawn_timer.clamp(30 * (1.0 + time_factor), 120 * (1.0 + time_factor)))
@@ -339,7 +340,7 @@ class Game
     angle = rand 360
     enemy_xpos = @player.x + angle.vector_x * 800
     enemy_ypos = @player.y + angle.vector_y * 800
-    puts("spawning #{enemy_xpos}, #{enemy_ypos}")
+    # puts("spawning #{enemy_xpos}, #{enemy_ypos}")
     ordinal = {x: enemy_xpos, y: enemy_ypos}
     @enemies << Pursuer.new(ordinal, -1)
     # @enemies << {
@@ -501,8 +502,14 @@ class Game
   # idea: movement works differently in boost mode?
   # or do we just clamp the max speed attainable with walking?
   def move_player
-    @time_factor = 0.5 if inputs.mouse.button_right
-    @time_factor = 1.0 if !inputs.mouse.button_right
+    if inputs.mouse.button_right
+      @time_factor -= 0.024 unless @time_factor <= 0.3
+      @time_factor.clamp 0.3
+    end
+    if !inputs.mouse.button_right
+      @time_factor += 0.03 unless @time_factor >= 1.0
+      @time_factor.clamp 1.0
+    end 
     @player.x += @player.vx * @time_factor
     @player.y += @player.vy * @time_factor
     @player.x = @player.x.clamp @player.w * 0.5, $world.w - (@player.w * 0.5)
