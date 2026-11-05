@@ -344,9 +344,12 @@ class Game
     ordinal = {x: enemy_xpos, y: enemy_ypos}
     num_spawned = 0
     while num_spawned < $squad_size
-      @enemies << Pursuer.new(ordinal, $squad_id)
-      delta_x = 50 * Numeric.rand(0..2)
-      delta_y = 50 * Numeric.rand(0..2) while delta_x == 0 && delta_y == delta_x
+      new_enemy = Pursuer.new(ordinal, $squad_id)
+      @enemies << new_enemy
+      puts("spawning #{new_enemy}")
+      delta_x = 50.0 * Numeric.rand(0..2)
+      delta_y = 50.0 * Numeric.rand(0..2) 
+      delta_y += 50.0 * Numeric.rand(1..2) while (delta_x == 0.0 && delta_y == delta_x)
       ordinal.x += delta_x
       ordinal.y += delta_y
       num_spawned += 1

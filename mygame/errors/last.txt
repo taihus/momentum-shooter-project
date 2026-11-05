@@ -1,30 +1,6 @@
-* EXCEPTION POSSIBLY CAUSED BY CALLING ~rand~ with ~Range~ parameter: Use ~Numeric.rand~ instead.
-The exception message hints at a common error of invoking ~rand~ with a ~Range~ parameter.
-DragonRuby's ~Kernel.rand~ function does NOT support arguments of type ~Range~ (DragonRuby
-leverages mRuby's ~rand~ implementation which doesn't support ~Range~).
-
-In lieu of overriding ~Kernel.rand~, DragonRuby provides ~Numeric.rand~ which supports ranges.
-
-Instead of:
-
-#+begin_src
-  # Kernel.rand function used
-  #   Ranges not supported/possible reason for exception
-  rand(-10..10)
-#+end_src
-
-Do this:
-
-#+begin_src
-  # Numeric.rand function used
-  #   Ranges supported
-  Numeric.rand(-10..10)
-#+end_src
-
-* EXCEPTION THROWN:
-can't convert Range to Integer
+* EXCEPTION: non float value
 ** Backtrace:
-*** app/main.rb:349:in spawn_enemies
+*** app/main.rb:351:in spawn_enemies
 *** app/main.rb:330:in calc_enemies
 *** app/main.rb:66:in tick
-*** app/main.rb:606:in tick
+*** app/main.rb:607:in tick
