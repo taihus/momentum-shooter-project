@@ -381,12 +381,15 @@ class Game
       next if !bullet_collision
 
       @enemies.delete bullet_collision
-      bullet.kills ||= 0
-      bullet.kills += 1
-      @player.score += bullet.kills
-      @spawn_timer -= bullet.kills * (2.0 / $squad_size)
-      @player.health += 1 if @player.health < 10 && bullet.kills > 1
+      # bullet.kills ||= 0
+      # bullet.kills += 1
+      bullet.killed ||= true
+      # @player.score += bullet.kills
+      @spawn_timer -= 2.0 / $squad_size
+      # @player.health += 1 if @player.health < 10 && bullet.kills > 1
+      @time_factor = 0.0
     end
+    @bullets.reject!{ |bullet| bullet.killed }
 
     @player.health_perc = @player.health_perc.lerp(@player.health.fdiv(10), 0.1)
   end
@@ -516,11 +519,12 @@ class Game
   def move_player
     if inputs.mouse.button_right
       @time_factor -= 0.024 unless @time_factor <= 0.3
-      @time_factor.clamp 0.3
+      # @time_factor = @time_factor.lerp(0.3, 0.1, tolerance: 0.0001) unless @time_factor >= 0.3
     end
     if !inputs.mouse.button_right
+      # @time_factor += @time_factor.lerp(0.3, 0.1, tolerance: 0.0001) unless @time_factor >= 0.3
       @time_factor += 0.03 unless @time_factor >= 1.0
-      @time_factor.clamp 1.0
+      @time_factor.clamp 0.0, 1.0
     end 
     @player.x += @player.vx * @time_factor
     @player.y += @player.vy * @time_factor
@@ -580,8 +584,8 @@ class Game
 
   def move_player_bullets
     @bullets.each do |bullet|
-      bullet.x += bullet.vx * time_factor
-      bullet.y += bullet.vy * time_factor
+      bullet.x += bullet.vx * @time_factor
+      bullet.y += bullet.vy * @time_factor
     end
 
     @bullets.reject! do |bullet|
