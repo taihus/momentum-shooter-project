@@ -1,6 +1,8 @@
-* EXCEPTION: non float value
+* EXCEPTION: Undefined method `*' for {:x=>1.212024050615842, :y=>-2.18654926784849}:Hash
 ** Backtrace:
-*** app/main.rb:351:in spawn_enemies
-*** app/main.rb:330:in calc_enemies
+*** app/pursuer.rb:41:in update
+*** app/main.rb:396:in move_enemies
+*** app/main.rb:395:in move_enemies
+*** app/main.rb:332:in calc_enemies
 *** app/main.rb:66:in tick
-*** app/main.rb:607:in tick
+*** app/main.rb:610:in tick

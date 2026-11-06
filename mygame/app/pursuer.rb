@@ -34,8 +34,12 @@ class Pursuer
       when "patrol"
         angle = Geometry.angle player, { x: @x, y: @y}
         @angle = angle + 90
-        @x -= angle.vector_x * 2.5 * game.time_factor
-        @y -= angle.vector_y * 2.5 * game.time_factor
+        @velocity.x *= 0.8
+        @velocity.y *= 0.8
+        @velocity.x -= angle.vector_x * 0.5
+        @x += @velocity.x * game.time_factor
+        @velocity.y -= angle.vector_y * 0.5
+        @y += @velocity.y * game.time_factor
     #   puts("moving enemy towards #{@x}, #{@y}")
       else
         puts("oh no")
