@@ -31,11 +31,11 @@ class Game
   end
 
   def reset_game
-    $world  = { w: 1280, h: 720 }
+    $world  = { w: 1280, h: 720, tiles: [] }
     @time_factor = 1.0
     $squad_size = 8
     $squad_id = 0
-    @player = { x: 100, y: 100, w: 20, h: 20,
+    @player = { x: 700, y: 500, w: 20, h: 20,
                 anchor_x: 0.5,
                 anchor_y: 0.5,
                 path: 'sprites/circle/solid.png',
@@ -47,16 +47,34 @@ class Game
                 health_perc: 1.0,
                 cooldown: 0,
                 boost_cooldown: 0,
-                score: 0 }
+                score: 0,
+                # rotation: 90.to_radians 
+              }
     # camera x and y correspond to the player's position on camera
-    @camera = { x: 640, y: 360, scale: 1.0 }
+    # @camera = { x: 640, y: 360, scale: 1.0 }
+    @camera = {
+      target_x: 0,
+      target_y: 0,
+      target_scale: 1.0,
+      target_pan_offset_x: 0,
+      target_pan_offset_y: 0,
+      target_rotation: 0.0,
+      x: 0,
+      y: 0,
+      scale: 1.0,
+      rotation: 0.0
+    }
     @spawn_timer = 180
     @enemies = []
     @bullets = []
     $map_loaded = false
+    @camera_matrix = nil
+    @world_matrix = nil
   end
 
   def tick
+    update_matrices!
+    @mouse_in_world = point_to_world_space(inputs.mouse.x, inputs.mouse.y)
     # @on_screen_gamepad_left.tick
     # @on_screen_gamepad_right.tick
     # generate_collision_test_map unless $map_loaded
@@ -64,6 +82,7 @@ class Game
     generate_blank_map unless $map_loaded
     calc_player
     calc_enemies
+    calc_camera
     render
     calc_game_over
     # input_edit_map
@@ -217,95 +236,6 @@ class Game
                                  r:    r ? :some : :none})
   end
 
-  def render
-    progress_bar = Geometry.rect(
-      x: @camera.x,
-      y: @camera.y + 30,
-      w: 128,
-      h: 16,
-      anchor_x: 0.5,
-      anchor_y: 0.5,
-    ).merge(r: 0, g: 0, b: 0, path: :solid)
-
-    health_area = Geometry.zoom_rect(rect: progress_bar, px: -8)
-    current_health = { **health_area, w: health_area.w * @player.health_perc }
-
-    outputs.primitives << progress_bar
-    outputs.primitives << health_area.merge(r: 255, g: 255, b: 255, path: :solid)
-    outputs.primitives << current_health.merge(r: 80, g: 155, b: 80, path: :solid)
-
-    # TODO: create and store a hash representing the position of the cursor IN THE SCENE, not on screen
-
-    # concept: two lines extending out from player past location of cursor.
-
-    # cursor in scene is important for calculations, but final UI elements should render ON TOP of scene
-    # this is important to avoid scaling the UI with the scene.
-
-    cursor_pos = calc_cursor_in_scene
-    # guide_line_center = { 
-    #                       x: @player.x, 
-    #                       y: @player.y, 
-    #                       x2: cursor_pos.x, 
-    #                       y2: cursor_pos.y
-    #                     }
-    line_len = Geometry.distance({ x: @player.x, y: @player.y },cursor_pos)
-
-    aim_angle = Geometry.vec2_angle(@player.aim_dir)
-
-    guide_left_dir = Geometry.angle_vec2(aim_angle + @player.aim_deviation)
-
-    guide_line_left = {
-                        x: @player.x + guide_left_dir.x * line_len * 0.5, 
-                        y: @player.y + guide_left_dir.y * line_len * 0.5,
-                        x2: @player.x + guide_left_dir.x * line_len * 1.2, 
-                        y2: @player.y + guide_left_dir.y * line_len * 1.2,
-                        r: 102, g: 255, b: 51
-                      }
-
-    guide_right_dir = Geometry.angle_vec2(aim_angle - @player.aim_deviation)
-
-    guide_line_right = {
-                        x: @player.x + guide_right_dir.x * line_len * 0.5, 
-                        y: @player.y + guide_right_dir.y * line_len * 0.5,
-                        x2: @player.x + guide_right_dir.x * line_len * 1.2, 
-                        y2: @player.y + guide_right_dir.y * line_len * 1.2,
-                        r: 102, g: 255, b: 51
-                      }
-
-    outputs[:scene].background_color = [30, 30, 30]
-    
-    # puts("#{@enemies.map { |e| e.getSprite}}")
-    outputs[:scene].primitives << [@player, @enemies.map { |e| e.getSprite}]
-    # puts("#{outputs[:scene].primitives}")
-
-    outputs[:scene].sprites << [@bullets, $world.tiles.map(&:sprite), @bullets.map(&:tracer)]
-
-    # outputs[:scene].lines << guide_line_center
-    outputs[:scene].lines << guide_line_left
-    outputs[:scene].lines << guide_line_right
-
-    outputs[:scene].w = $world.w
-    outputs[:scene].h = $world.h
-
-    scene_position = calc_scene_position
-    outputs.sprites << { x: scene_position.x,
-                            y: scene_position.y,
-                            w: scene_position.w,
-                            h: scene_position.h,
-                            path: :scene }
-
-    # if DR.platform?(:touch)
-    #   outputs.primitives << { x: 640, y: 720, text: "Finger on left side of screen to move. Finger on right side of screen to shoot.", anchor_x: 0.5, anchor_y: 1.5, r: 255, g: 255, b: 255 }
-    # elsif inputs.last_active == :keyboard || inputs.last_active == :mouse
-    #   outputs.primitives << { x: 640, y: 720, text: "WASD to move, Arrow Keys to shoot.", anchor_x: 0.5, anchor_y: 1.5, r: 255, g: 255, b: 255 }
-    # elsif inputs.last_active == :controller
-    #   outputs.primitives << { x: 640, y: 720, text: "Left Analog to move, Right Analog to shoot.", anchor_x: 0.5, anchor_y: 1.5, r: 255, g: 255, b: 255 }
-    # end
-
-    # outputs.primitives << @on_screen_gamepad_left.primitives
-    # outputs.primitives << @on_screen_gamepad_right.primitives
-  end
-
   def health_progress_bar_primitives
 
   end
@@ -321,9 +251,10 @@ class Game
   end
 
   def calc_cursor_in_scene
-    result = { x: @player.x + (inputs.mouse.x - @camera.x),
-              y: @player.y + (inputs.mouse.y - @camera.y)}
-    return result
+    to_world_space inputs.mouse.rect
+    # result = { x: @player.x + (inputs.mouse.x - @camera.x),
+    #           y: @player.y + (inputs.mouse.y - @camera.y)}
+    # return result
   end
 
   def calc_enemies
@@ -387,7 +318,7 @@ class Game
       # @player.score += bullet.kills
       @spawn_timer -= 2.0 / $squad_size
       # @player.health += 1 if @player.health < 10 && bullet.kills > 1
-      @time_factor = 0.0
+      # @time_factor = 0.0
     end
     @bullets.reject!{ |bullet| bullet.killed }
 
@@ -401,6 +332,23 @@ class Game
   end
 
   def calc_player
+    if inputs.mouse.button_right
+      @time_factor -= 0.024 unless @time_factor <= 0.15
+      # @time_factor = @time_factor.lerp(0.3, 0.1, tolerance: 0.0001) unless @time_factor >= 0.3
+    end
+    if !inputs.mouse.button_right
+      # @time_factor += @time_factor.lerp(0.3, 0.1, tolerance: 0.0001) unless @time_factor >= 0.3
+      @time_factor += 0.03 unless @time_factor >= 1.0
+      @time_factor.clamp 0.0, 1.0
+    end
+    if inputs.keyboard.key_down.minus
+      @camera.target_scale *= 0.9
+    elsif inputs.keyboard.key_down.equal
+      @camera.target_scale *= 1.1
+    end
+    # TODO if collision issues due to velocity:
+    #   consider using the quarter-step collision logic 
+    #   in the matrix camera w/rotation sample file
     calc_player_v
     calc_player_rect
     calc_player_aim
@@ -517,19 +465,10 @@ class Game
   # idea: movement works differently in boost mode?
   # or do we just clamp the max speed attainable with walking?
   def move_player
-    if inputs.mouse.button_right
-      @time_factor -= 0.024 unless @time_factor <= 0.3
-      # @time_factor = @time_factor.lerp(0.3, 0.1, tolerance: 0.0001) unless @time_factor >= 0.3
-    end
-    if !inputs.mouse.button_right
-      # @time_factor += @time_factor.lerp(0.3, 0.1, tolerance: 0.0001) unless @time_factor >= 0.3
-      @time_factor += 0.03 unless @time_factor >= 1.0
-      @time_factor.clamp 0.0, 1.0
-    end 
     @player.x += @player.vx * @time_factor
     @player.y += @player.vy * @time_factor
-    @player.x = @player.x.clamp @player.w * 0.5, $world.w - (@player.w * 0.5)
-    @player.y = @player.y.clamp @player.h * 0.5, $world.h - (@player.h * 0.5)
+    # @player.x = @player.x.clamp @player.w * 0.5, $world.w - (@player.w * 0.5)
+    # @player.y = @player.y.clamp @player.h * 0.5, $world.h - (@player.h * 0.5)
   end
 
   def fire_player
@@ -560,6 +499,7 @@ class Game
       w: 5, h: 5, path: "sprites/circle/solid.png", r: 232, g: 232, b: 232,
       vx: bullet_dir.x * bullet_speed + @player.vx / player_momentum_quotient,
       vy: bullet_dir.y * bullet_speed + @player.vy / player_momentum_quotient,
+      lifetime: 3.seconds
     }
     bullet_vel = { x: bullet.vx, y: bullet.vy }
     bullet_speed = Geometry.vec2_magnitude(bullet_vel)
@@ -569,7 +509,8 @@ class Game
                 anchor_x: 1.0, anchor_y: 0.5,
                 angle: Geometry.vec2_angle(bullet_vel),
                 angle_anchor_x: 1.0, angle_anchor_y: 0.5,
-                w: 2.0 * bullet_speed, h: 5, path: "sprites/circle/solid.png", r: 255, g: 255, b: 96, a: 120
+                # rotation: (Geometry.vec2_angle(bullet_vel) + 90).to_radians,
+                w: 1.5 * bullet_speed, h: 5, path: "sprites/circle/solid.png", r: 255, g: 255, b: 96, a: 120
               }
     # print dir
     @bullets << bullet
@@ -588,8 +529,12 @@ class Game
       bullet.y += bullet.vy * @time_factor
     end
 
+    # @bullets.reject! do |bullet|
+    #   bullet.x < -100 || bullet.y < -100 || bullet.x > $world.w + 100 || bullet.y > $world.h + 100
+    # end
+
     @bullets.reject! do |bullet|
-      bullet.x < -100 || bullet.y < -100 || bullet.x > $world.w + 100 || bullet.y > $world.h + 100
+      bullet.lifetime < 0
     end
 
     @bullets.each do |bullet|
@@ -598,12 +543,221 @@ class Game
       bullet.tracer.x = bullet.x
       bullet.tracer.y = bullet.y
       bullet.tracer.angle = Geometry.vec2_angle(bullet_vel)
+      # bullet.tracer.rotation = (bullet.tracer.angle + 90).to_radians
       bullet.tracer.w = 2.0 * bullet_speed
+      bullet.lifetime -= 1 * time_factor
     end
   end
 
   def current_player_rect
     { x: @player.x, y: @player.y, w: @player.w, h: @player.h, anchor_x: @player.anchor_x, anchor_y: @player.anchor_y}.to_hash
+  end
+
+  # helper method that gives the player's circle collision shape
+  def player_hit_circ
+    { x: @player.x + @player.w / 2,
+      y: @player.y + @player.h / 2,
+      radius: @player.w / 2 }
+  end
+
+  # do I want everything to tell the camera what to do
+  # ie camera behavior is emergent based on competing target weights
+  # or do I create dedicated camera logic?
+  def calc_camera
+    @camera.target_x = @player.x
+    @camera.target_y = @player.y
+
+    # turning does the same thing, rotates the player, rotates the camera,
+    # and invalidates the camera matrix
+    # if inputs.keyboard.e
+    #   @camera.target_rotation -= 0.05
+    # elsif inputs.keyboard.q
+    #   @camera.target_rotation += 0.05
+    # end
+
+    @camera.x = @camera.x.lerp(@camera.target_x, 0.1)
+    @camera.y = @camera.y.lerp(@camera.target_y, 0.1)
+    @camera.scale = @camera.scale.lerp(@camera.target_scale, 0.1)
+    @camera.rotation = @camera.rotation.lerp(@camera.target_rotation, 0.1)
+  end
+
+  
+  # TODO position camera based on cursor and player, not just player
+  def render
+    # cursor in scene is important for calculations, but final UI elements should render ON TOP of scene
+    # this is important to avoid scaling the UI with the scene.
+    cursor_world_rect = calc_cursor_in_scene
+    outputs.watch DR.current_framerate
+    # outputs.watch cursor_world_rect
+    # outputs.watch current_player_rect
+    # guide_line_center = { 
+    #                       x: @player.x, 
+    #                       y: @player.y, 
+    #                       x2: cursor_pos.x, 
+    #                       y2: cursor_pos.y
+    #                     }
+    line_len = Geometry.distance({ x: @player.x, y: @player.y },cursor_world_rect)
+
+    aim_angle = Geometry.vec2_angle(@player.aim_dir)
+
+    guide_left_dir = Geometry.angle_vec2(aim_angle + @player.aim_deviation)
+
+    guide_line_left = {
+                        x: @player.x + guide_left_dir.x * line_len * 0.5, 
+                        y: @player.y + guide_left_dir.y * line_len * 0.5,
+                        x2: @player.x + guide_left_dir.x * line_len * 1.2, 
+                        y2: @player.y + guide_left_dir.y * line_len * 1.2,
+                        r: 102, g: 255, b: 51
+                      }
+
+    guide_right_dir = Geometry.angle_vec2(aim_angle - @player.aim_deviation)
+
+    guide_line_right = {
+                        x: @player.x + guide_right_dir.x * line_len * 0.5, 
+                        y: @player.y + guide_right_dir.y * line_len * 0.5,
+                        x2: @player.x + guide_right_dir.x * line_len * 1.2, 
+                        y2: @player.y + guide_right_dir.y * line_len * 1.2,
+                        r: 102, g: 255, b: 51
+                      }
+
+    outputs[:scene].background_color = [30, 30, 30]
+
+    outputs[:scene].w = Grid.allscreen_w
+    outputs[:scene].h = Grid.allscreen_h
+    
+    camera_space_player = to_camera_space(@player)
+    # puts("#{@enemies.map { |e| e.getSprite}}")
+    outputs[:scene].primitives << camera_space_player
+    outputs[:scene].primitives << @enemies.map { |e| to_camera_space(e.getSprite) }
+    # puts("#{outputs[:scene].primitives}")
+
+    outputs[:scene].sprites << @bullets.map { |b| to_camera_space(b) }
+    outputs[:scene].sprites << $world.tiles.map { |t| to_camera_space(t.sprite) }
+    outputs[:scene].sprites << @bullets.map { |b| to_camera_space(b.tracer) }
+
+    # outputs[:scene].lines << guide_line_center
+    outputs[:scene].lines << line_to_camera_space(guide_line_left)
+    outputs[:scene].lines << line_to_camera_space(guide_line_right)
+
+    # scene_position = calc_scene_position
+    outputs.sprites << { 
+      x: 0, y: 0,
+      w: Grid.allscreen_w, h: Grid.allscreen_h,
+      path: :scene, anchor_x: 0.5, anchor_y: 0.5 }
+    
+    progress_bar = Geometry.rect(
+      x: camera_space_player.x,
+      y: camera_space_player.y + 30,
+      w: 128,
+      h: 16,
+      anchor_x: 0.5,
+      anchor_y: 0.5,
+    ).merge(r: 0, g: 0, b: 0, path: :solid)
+
+    health_area = Geometry.zoom_rect(rect: progress_bar, px: -8)
+    current_health = { **health_area, w: health_area.w * @player.health_perc }
+
+    outputs.primitives << progress_bar
+    outputs.primitives << health_area.merge(r: 255, g: 255, b: 255, path: :solid)
+    outputs.primitives << current_health.merge(r: 80, g: 155, b: 80, path: :solid)
+
+    # outputs.lines << { x: 0, y: -360, h: 720, r: 255, g: 255, b: 255 }
+    # outputs.lines << { x: -640, y: 0, w: 1280, r: 255, g: 255, b: 255 }
+
+    # if DR.platform?(:touch)
+    #   outputs.primitives << { x: 640, y: 720, text: "Finger on left side of screen to move. Finger on right side of screen to shoot.", anchor_x: 0.5, anchor_y: 1.5, r: 255, g: 255, b: 255 }
+    # elsif inputs.last_active == :keyboard || inputs.last_active == :mouse
+    #   outputs.primitives << { x: 640, y: 720, text: "WASD to move, Arrow Keys to shoot.", anchor_x: 0.5, anchor_y: 1.5, r: 255, g: 255, b: 255 }
+    # elsif inputs.last_active == :controller
+    #   outputs.primitives << { x: 640, y: 720, text: "Left Analog to move, Right Analog to shoot.", anchor_x: 0.5, anchor_y: 1.5, r: 255, g: 255, b: 255 }
+    # end
+
+    # outputs.primitives << @on_screen_gamepad_left.primitives
+    # outputs.primitives << @on_screen_gamepad_right.primitives
+  end
+
+  def world_matrix camera
+    Matrix.mul(mat3_rotate(@camera.rotation), mat3_scale(1.0 / camera.scale), mat3_translate(camera.x, camera.y))
+  end
+
+  def camera_matrix camera
+    Matrix.mul(mat3_translate(-camera.x, -camera.y), mat3_scale(camera.scale), mat3_rotate(-@camera.rotation))
+  end
+
+  def update_matrices!
+    @camera_matrix = camera_matrix @camera
+    @world_matrix = world_matrix @camera
+  end
+
+  def point_mul x, y, m
+    r = Matrix.mul(Matrix.vec3(x, y, 1), m)
+    { x: r.x, y: r.y }
+  end
+
+  def point_to_world_space x, y
+    point_mul x, y, @world_matrix
+  end
+
+  def point_to_camera_space x, y
+    point_mul x, y, @camera_matrix
+  end
+
+  def to_world_space rect
+    projection_bottom_left = point_to_world_space(rect.x, rect.y)
+    projection_top_right = point_to_world_space(rect.x + rect.w, rect.y + rect.h)
+    # compute the new angle of the rect and use that to compute the angle of rotation
+    # within the screen for the sprite
+    # rect_angle = (rect.rotation || 0).to_degrees * -1
+    # projection_angle = Geometry.angle(projection_bottom_left, projection_top_right)
+    rect.merge x: projection_bottom_left.x,
+               y: projection_bottom_left.y,
+               w: (projection_bottom_left.x - projection_top_right.x).abs,
+               h: (projection_bottom_left.y - projection_top_right.y).abs
+              #  angle: projection_angle - 45 + rect_angle
+  end
+
+  def to_camera_space rect
+    projection_bottom_left = point_to_camera_space(rect.x, rect.y)
+    projection_top_right = point_to_camera_space(rect.x + rect.w, rect.y + rect.h)
+
+    # compute the new angle of the rect and use that to compute the angle of rotation
+    # within the screen for the sprite
+    # rect_angle = (rect.rotation || 0).to_degrees
+    # projection_angle = Geometry.angle(projection_bottom_left, projection_top_right)
+
+    rect.merge x: projection_bottom_left.x,
+               y: projection_bottom_left.y,
+               w: (projection_bottom_left.x - projection_top_right.x).abs,
+               h: (projection_bottom_left.y - projection_top_right.y).abs
+              #  angle: projection_angle - 45 + rect_angle
+  end
+
+  def line_to_camera_space line
+    projection_point_1 = point_to_camera_space(line.x, line.y)
+    projection_point_2 = point_to_camera_space(line.x2, line.y2)
+
+    line.merge x: projection_point_1.x,
+               y: projection_point_1.y,
+               x2: projection_point_2.x,
+               y2: projection_point_2.y
+  end
+  
+  def mat3_translate x, y
+    Matrix.mat3 1, 0, x,
+                0, 1, y,
+                0, 0, 1
+  end
+
+  def mat3_scale s
+    Matrix.mat3 s, 0, 0,
+                0, s, 0,
+                0, 0, 1
+  end
+
+  def mat3_rotate t
+    Matrix.mat3 Math.cos(t), -Math.sin(t), 0,
+                Math.sin(t), Math.cos(t), 0,
+                0, 0, 1
   end
 end
 
@@ -616,6 +770,7 @@ module Main
 
   def boot
     $state = {}
+    Grid.origin_center!
   end
 
   def reset

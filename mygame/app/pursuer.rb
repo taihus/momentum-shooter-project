@@ -6,9 +6,9 @@ class Pursuer
     def initialize ordinal, squad
         @x = ordinal.x
         @y = ordinal.y
-        @w = 24
+        @w = 16
         @h = 32
-        @angle = 0
+        @angle = -90.0
         @velocity = { x: 0.0, y: 0.0 }
         @squad = squad
         @ai_state = "patrol"
@@ -24,6 +24,7 @@ class Pursuer
             w: @w, h: @h, 
             path: 'sprites/triangle/equilateral/red.png',
             angle: @angle
+            # rotation: (@angle - 90).to_radians 
         }
     end
 
@@ -33,17 +34,17 @@ class Pursuer
       case @ai_state
       when "patrol"
         angle_to_player = Geometry.angle player, { x: @x, y: @y}
-        # @angle = angle + 90
-        @velocity.x -= angle_to_player.vector_x * 0.02
-        @velocity.y -= angle_to_player.vector_y * 0.02
+        # @angle = angle - 90
+        @velocity.x -= angle_to_player.vector_x * 0.05
+        @velocity.y -= angle_to_player.vector_y * 0.05
 
         squad = getSquad(game.enemies)
-        squad_vel_component = Geometry.vec2_scale(getSquadVel(squad),0.001)
+        squad_vel_component = Geometry.vec2_scale(getSquadVel(squad),0.0005)
         @velocity = Geometry.vec2_add(@velocity, squad_vel_component)
 
         angle_to_squad_center = Geometry.angle({ x: @x, y: @y}, getSquadPos(squad))
-        @velocity.x -= angle_to_squad_center.vector_x * 0.0001
-        @velocity.y -= angle_to_squad_center.vector_y * 0.0001
+        @velocity.x -= angle_to_squad_center.vector_x * 0.0005
+        @velocity.y -= angle_to_squad_center.vector_y * 0.0005
 
         speed_factor = (15.0/Geometry.vec2_magnitude(@velocity)).clamp(0.0,1.0)
         @velocity = Geometry.vec2_scale(@velocity, speed_factor)
