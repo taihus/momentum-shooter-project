@@ -1,3 +1,4 @@
+require 'app/camera.rb'
 require 'app/pursuer.rb'
 
 # Using samples/99_genre_arcade/twinstick as a starting point
@@ -39,6 +40,7 @@ class Game
                 anchor_x: 0.5,
                 anchor_y: 0.5,
                 path: 'sprites/circle/solid.png',
+                r: 50, g: 255, b: 50,
                 vx: 0,
                 vy: 0,
                 aim_dir: { x: 0, y: 0},
@@ -52,29 +54,17 @@ class Game
               }
     # camera x and y correspond to the player's position on camera
     # @camera = { x: 640, y: 360, scale: 1.0 }
-    @camera = {
-      target_x: 0,
-      target_y: 0,
-      target_scale: 1.0,
-      target_pan_offset_x: 0,
-      target_pan_offset_y: 0,
-      target_rotation: 0.0,
-      x: 0,
-      y: 0,
-      scale: 1.0,
-      rotation: 0.0
-    }
+    @camera = Camera.new
     @spawn_timer = 180
     @enemies = []
     @bullets = []
     $map_loaded = false
     @camera_matrix = nil
     @world_matrix = nil
+    @camera.update_matrices!
   end
 
   def tick
-    update_matrices!
-    @mouse_in_world = point_to_world_space(inputs.mouse.x, inputs.mouse.y)
     # @on_screen_gamepad_left.tick
     # @on_screen_gamepad_right.tick
     # generate_collision_test_map unless $map_loaded
@@ -115,10 +105,12 @@ class Game
   end
 
   def generate_blank_map
-    $world  = { w: 4800, h: 4800,
+    $world  = { w: 1280, h: 720,
                 tile_size: 32,
-                tiles: [] }
+                tiles: [], floor_tiles: [] 
+              }
     recompute_tiles
+    compute_floor
     $map_loaded = true;
   end
 
@@ -175,6 +167,25 @@ class Game
       $world.tiles << state.new_entity(:tile).merge(ordinal)
     end
   end
+
+  def compute_floor
+    tile_x = -$world.w.idiv($world.tile_size).idiv(2)
+    tile_y = -$world.h.idiv($world.tile_size).idiv(2)
+    $world.w.idiv($world.tile_size).times do
+      tile_x += 1
+      tile_y = -$world.h.idiv($world.tile_size).idiv(2)
+      $world.h.idiv($world.tile_size).times do
+        tile_y += 1
+        $world.floor_tiles << {
+          x: tile_x * $world.tile_size, y: tile_y * $world.tile_size, 
+          w: $world.tile_size, h: $world.tile_size,
+          path: 'sprites/tile/Town_Tiles_01.png',
+          tile_x: 448, tile_y: 32, tile_w: 32, tile_h: 32
+        }
+      end
+    end
+  end
+
 
   def recompute_tiles
     $world.tiles.each do |t|
@@ -240,18 +251,8 @@ class Game
 
   end
 
-  def calc_scene_position
-    result = {  x: @camera.x - (@player.x * @camera.scale),
-                y: @camera.y - (@player.y * @camera.scale),
-                w: $world.w * @camera.scale,
-                h: $world.h * @camera.scale,
-                scale: @camera.scale }
-
-    return result
-  end
-
   def calc_cursor_in_scene
-    to_world_space inputs.mouse.rect
+    @camera.rect_to_world_space inputs.mouse.rect
     # result = { x: @player.x + (inputs.mouse.x - @camera.x),
     #           y: @player.y + (inputs.mouse.y - @camera.y)}
     # return result
@@ -277,7 +278,7 @@ class Game
     while num_spawned < $squad_size
       new_enemy = Pursuer.new(ordinal, $squad_id)
       @enemies << new_enemy
-      puts("spawning #{new_enemy}")
+      # puts("spawning #{new_enemy}")
       delta_x = 50.0 * Numeric.rand(0..2)
       delta_y = 50.0 * Numeric.rand(0..2) 
       delta_y += 50.0 * Numeric.rand(1..2) while (delta_x == 0.0 && delta_y == delta_x)
@@ -575,10 +576,7 @@ class Game
     #   @camera.target_rotation += 0.05
     # end
 
-    @camera.x = @camera.x.lerp(@camera.target_x, 0.1)
-    @camera.y = @camera.y.lerp(@camera.target_y, 0.1)
-    @camera.scale = @camera.scale.lerp(@camera.target_scale, 0.1)
-    @camera.rotation = @camera.rotation.lerp(@camera.target_rotation, 0.1)
+    @camera.update_camera!
   end
 
   
@@ -625,19 +623,20 @@ class Game
     outputs[:scene].w = Grid.allscreen_w
     outputs[:scene].h = Grid.allscreen_h
     
-    camera_space_player = to_camera_space(@player)
+    camera_space_player = @camera.rect_to_camera_space(@player)
+    outputs[:scene].sprites << $world.floor_tiles.map { |t| @camera.rect_to_camera_space(t)}
     # puts("#{@enemies.map { |e| e.getSprite}}")
     outputs[:scene].primitives << camera_space_player
-    outputs[:scene].primitives << @enemies.map { |e| to_camera_space(e.getSprite) }
+    outputs[:scene].primitives << @enemies.map { |e| @camera.rect_to_camera_space(e.getSprite) }
     # puts("#{outputs[:scene].primitives}")
 
-    outputs[:scene].sprites << @bullets.map { |b| to_camera_space(b) }
-    outputs[:scene].sprites << $world.tiles.map { |t| to_camera_space(t.sprite) }
-    outputs[:scene].sprites << @bullets.map { |b| to_camera_space(b.tracer) }
+    outputs[:scene].sprites << @bullets.map { |b| @camera.rect_to_camera_space(b) }
+    outputs[:scene].sprites << $world.tiles.map { |t| @camera.rect_to_camera_space(t.sprite) }
+    outputs[:scene].sprites << @bullets.map { |b| @camera.rect_to_camera_space(b.tracer) }
 
     # outputs[:scene].lines << guide_line_center
-    outputs[:scene].lines << line_to_camera_space(guide_line_left)
-    outputs[:scene].lines << line_to_camera_space(guide_line_right)
+    outputs[:scene].lines << @camera.line_to_camera_space(guide_line_left)
+    outputs[:scene].lines << @camera.line_to_camera_space(guide_line_right)
 
     # scene_position = calc_scene_position
     outputs.sprites << { 
@@ -676,89 +675,6 @@ class Game
     # outputs.primitives << @on_screen_gamepad_right.primitives
   end
 
-  def world_matrix camera
-    Matrix.mul(mat3_rotate(@camera.rotation), mat3_scale(1.0 / camera.scale), mat3_translate(camera.x, camera.y))
-  end
-
-  def camera_matrix camera
-    Matrix.mul(mat3_translate(-camera.x, -camera.y), mat3_scale(camera.scale), mat3_rotate(-@camera.rotation))
-  end
-
-  def update_matrices!
-    @camera_matrix = camera_matrix @camera
-    @world_matrix = world_matrix @camera
-  end
-
-  def point_mul x, y, m
-    r = Matrix.mul(Matrix.vec3(x, y, 1), m)
-    { x: r.x, y: r.y }
-  end
-
-  def point_to_world_space x, y
-    point_mul x, y, @world_matrix
-  end
-
-  def point_to_camera_space x, y
-    point_mul x, y, @camera_matrix
-  end
-
-  def to_world_space rect
-    projection_bottom_left = point_to_world_space(rect.x, rect.y)
-    projection_top_right = point_to_world_space(rect.x + rect.w, rect.y + rect.h)
-    # compute the new angle of the rect and use that to compute the angle of rotation
-    # within the screen for the sprite
-    # rect_angle = (rect.rotation || 0).to_degrees * -1
-    # projection_angle = Geometry.angle(projection_bottom_left, projection_top_right)
-    rect.merge x: projection_bottom_left.x,
-               y: projection_bottom_left.y,
-               w: (projection_bottom_left.x - projection_top_right.x).abs,
-               h: (projection_bottom_left.y - projection_top_right.y).abs
-              #  angle: projection_angle - 45 + rect_angle
-  end
-
-  def to_camera_space rect
-    projection_bottom_left = point_to_camera_space(rect.x, rect.y)
-    projection_top_right = point_to_camera_space(rect.x + rect.w, rect.y + rect.h)
-
-    # compute the new angle of the rect and use that to compute the angle of rotation
-    # within the screen for the sprite
-    # rect_angle = (rect.rotation || 0).to_degrees
-    # projection_angle = Geometry.angle(projection_bottom_left, projection_top_right)
-
-    rect.merge x: projection_bottom_left.x,
-               y: projection_bottom_left.y,
-               w: (projection_bottom_left.x - projection_top_right.x).abs,
-               h: (projection_bottom_left.y - projection_top_right.y).abs
-              #  angle: projection_angle - 45 + rect_angle
-  end
-
-  def line_to_camera_space line
-    projection_point_1 = point_to_camera_space(line.x, line.y)
-    projection_point_2 = point_to_camera_space(line.x2, line.y2)
-
-    line.merge x: projection_point_1.x,
-               y: projection_point_1.y,
-               x2: projection_point_2.x,
-               y2: projection_point_2.y
-  end
-  
-  def mat3_translate x, y
-    Matrix.mat3 1, 0, x,
-                0, 1, y,
-                0, 0, 1
-  end
-
-  def mat3_scale s
-    Matrix.mat3 s, 0, 0,
-                0, s, 0,
-                0, 0, 1
-  end
-
-  def mat3_rotate t
-    Matrix.mat3 Math.cos(t), -Math.sin(t), 0,
-                Math.sin(t), Math.cos(t), 0,
-                0, 0, 1
-  end
 end
 
 module Main
