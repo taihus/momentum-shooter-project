@@ -1,21 +1,26 @@
 * EXCEPTION:
-* ERROR: :+ method missing on ~NilClass~.
+* ERROR: Geometry::vec2_scale for v 8.335359715702816 and scalar 0.8.
+* ERROR:
+** method_missing: x
+** instance:       8.335359715702816
+** on class:       Float
+** with modules:   [NumericDeprecated, ValueType, Comparable, PP::ObjectMixin, Kernel]
+** with values:    8.335359715702816
+** given args:     [[]]
+** exception:      can't define singleton
+** backtrace:
+app/main.rb:322:in kill_enemies
+app/main.rb:318:in kill_enemies
+app/main.rb:314:in kill_enemies
+app/main.rb:266:in calc_enemies
+app/main.rb:76:in tick
+app/main.rb:745:in tick
 
-#+begin_src ~NilClass#inspect~
-nil
-#+end_src ~NilClass#inspect~
 
-
-
-The method named
-  :+
-with args
-  [1]
-doesn't exist on [NilClass, NilClassFalseClass].
-
-(suggestions above)
 ** Backtrace:
-*** app/main.rb:580:in calc_effects
-*** app/main.rb:578:in calc_effects
-*** app/main.rb:77:in tick
-*** app/main.rb:711:in tick
+*** app/main.rb:322:in kill_enemies
+*** app/main.rb:318:in kill_enemies
+*** app/main.rb:314:in kill_enemies
+*** app/main.rb:266:in calc_enemies
+*** app/main.rb:76:in tick
+*** app/main.rb:745:in tick

@@ -34,7 +34,7 @@ class Game
   def reset_game
     $world  = { w: 1280, h: 720, tiles: [] }
     @time_factor = 1.0
-    $squad_size = 8
+    $squad_size = 12
     $squad_id = 0
     @player = { x: 0, y: 0, w: 20, h: 20,
                 anchor_x: 0.5,
@@ -55,7 +55,7 @@ class Game
     # camera x and y correspond to the player's position on camera
     # @camera = { x: 640, y: 360, scale: 1.0 }
     @camera = Camera.new
-    @spawn_timer = 180
+    @spawn_timer = 0
     @enemies = []
     @bullets = []
     @effects = []
@@ -183,12 +183,12 @@ class Game
           x: tile_x * $world.tile_size, y: tile_y * $world.tile_size, 
           w: $world.tile_size, h: $world.tile_size,
           path: 'sprites/tile/Town_Tiles_01.png',
-          tile_x: 448, tile_y: 32, tile_w: 32, tile_h: 32
+          tile_x: 448, tile_y: 32, tile_w: 32, tile_h: 32,
+          r: 128, g: 128, b: 200
         }
       end
     end
   end
-
 
   def recompute_tiles
     $world.tiles.each do |t|
@@ -268,28 +268,28 @@ class Game
   end
 
   def spawn_enemies
-    should_spawn_enemy ||= Kernel.tick_count == 0
-    should_spawn_enemy ||= Kernel.tick_count.zmod?(@spawn_timer.clamp(30 * (1.0 + time_factor), 180 * (1.0 + time_factor)))
-    return if !should_spawn_enemy
+    @spawn_timer -= 1 * time_factor
+    return if @spawn_timer > 0
 
     angle = rand 360
-    enemy_xpos = @player.x + angle.vector_x * 800
-    enemy_ypos = @player.y + angle.vector_y * 800
+    enemy_xpos = @player.x + angle.vector_x * 1000
+    enemy_ypos = @player.y + angle.vector_y * 1000
     # puts("spawning #{enemy_xpos}, #{enemy_ypos}")
     ordinal = {x: enemy_xpos, y: enemy_ypos}
     num_spawned = 0
-    while num_spawned < $squad_size
+    angle += 90
+    $squad_size.times do
       new_enemy = Pursuer.new(ordinal, $squad_id)
       @enemies << new_enemy
       # puts("spawning #{new_enemy}")
-      delta_x = 50.0 * Numeric.rand(0..2)
-      delta_y = 50.0 * Numeric.rand(0..2) 
-      delta_y += 50.0 * Numeric.rand(1..2) while (delta_x == 0.0 && delta_y == delta_x)
+      delta_x = 50.0 * Numeric.rand(1..4) * angle.vector_x
+      delta_y = 50.0 * Numeric.rand(1..4) * angle.vector_y
+      # delta_y += 50.0 * Numeric.rand(-1..2) * angle.vector_y while (delta_x == 0.0 && delta_y == delta_x)
       ordinal.x += delta_x
       ordinal.y += delta_y
-      num_spawned += 1
     end
     $squad_id += 1
+    @spawn_timer = 4.seconds
     # @enemies << {
     #   x: 600 + angle.vector_x * 800,
     #   y: 320 + angle.vector_y * 800,
@@ -315,12 +315,23 @@ class Game
       bullet_collision = Geometry.find_intersect_rect(bullet, @enemies)
       next if !bullet_collision
       @effects << spawn_explosion(bullet_collision)
+      Numeric.rand(1..5).times do 
+        bullet_vel = { x: bullet.vx, y: bullet.vy }
+        spark_angle = Geometry.vec2_angle(bullet_vel) + Numeric.rand(-20.0..20.0)
+        spark_speed = Geometry.vec2_magnitude(bullet_vel) * Numeric.rand(0.05..0.15)
+        @effects << spawn_spark(bullet, spark_angle, spark_speed)
+      end
+      Numeric.rand(2..6).times do 
+        spark_angle = Geometry.vec2_angle(bullet_collision.velocity) + Numeric.rand(-10.0..10.0)
+        spark_speed = Geometry.vec2_magnitude(bullet_collision.velocity) * Numeric.rand(0.7..0.8)
+        @effects << spawn_chunk(bullet_collision, spark_angle, spark_speed)
+      end
       @enemies.delete bullet_collision
       # bullet.kills ||= 0
       # bullet.kills += 1
       bullet.killed ||= true
       # @player.score += bullet.kills
-      @spawn_timer -= 2.0 / $squad_size
+      # @spawn_timer -= 3.0
       # @player.health += 1 if @player.health < 10 && bullet.kills > 1
       # @time_factor = 0.0
     end
@@ -339,6 +350,27 @@ class Game
     }
   end
 
+  def spawn_spark ordinal, angle, speed
+    {
+      x: ordinal.x, y: ordinal.y, w: 5 * rand() + 1, h: 5 * rand() + 1,
+      dx: speed * angle.vector_x, dy: speed * angle.vector_y,
+      r: 255, g: 125 + rand(111), b: rand(51), a: 255,
+      anchor_x: 0.5, anchor_y: 0.5,
+      path: 'sprites/circle/solid.png',
+      type: :spark
+    }
+  end
+
+  def spawn_chunk ordinal, angle, speed
+    {
+      x: ordinal.x, y: ordinal.y, w: 10, h:10,
+      dx: speed * angle.vector_x, dy: speed * angle.vector_y,
+      r: 125, g: rand(111), b: rand(111), a: 255,
+      anchor_x: 0.5, anchor_y: 0.5,
+      path: 'sprites/circle/solid.png',
+      type: :spark
+    }
+  end
 
   def move_enemies
     @enemies.each do |enemy|
@@ -453,7 +485,7 @@ class Game
     # return if !dir
 
     boost = 1.0;
-    @player.boost_cooldown -= 1;
+    @player.boost_cooldown -= 1.0 * time_factor;
 
     if inputs.keyboard.key_down.left_shift && @player.boost_cooldown <= 0
       boost = 50.0;
@@ -461,18 +493,18 @@ class Game
     end
 
     if dir
-      @player.vx += dir.x * 0.75 * boost
-      @player.vy += dir.y * 0.75 * boost
+      @player.vx += dir.x * 0.75 * boost * time_factor
+      @player.vy += dir.y * 0.75 * boost * time_factor
     end
 
-    friction_factor = 0.87;
+    friction_factor = 0.13;
 
     if inputs.keyboard.key_held.space
-      friction_factor = 1.0;
+      friction_factor = 0.0;
     end
 
-    @player.vx = @player.vx * friction_factor
-    @player.vy = @player.vy * friction_factor
+    @player.vx = @player.vx * (1.0 - friction_factor * time_factor)
+    @player.vy = @player.vy * (1.0 - friction_factor * time_factor)
   end
 
   # Idea: normal movement doesn't work when boost mode is enabled?
@@ -487,23 +519,22 @@ class Game
 
   def fire_player
 
-    @player.cooldown -= 1 * @time_factor
+    @player.aim_deviation -= 0.05 * @time_factor unless @player.aim_deviation < 0.2
 
-    return if @player.cooldown > 0
-
-    @player.aim_deviation -= 0.2 * @time_factor unless @player.aim_deviation < 1.5
-
-    @player.aim_deviation = 1.5 if @player.aim_deviation < 1.5
+    @player.aim_deviation = 0.2 if @player.aim_deviation < 0.2
 
     # dir = inputs.keyboard.directional_vector_arrow ||
     #       inputs.controller_one.directional_vector_right_analog_cardinal
     #       # || @on_screen_gamepad_right.dpad_vector
 
+    @player.cooldown -= 1 * @time_factor
+
+    return if @player.cooldown > 0
     return if !inputs.mouse.button_left
     # outputs.debug << "this is a debug output"
 
     bullet_speed = 60.0
-    player_momentum_quotient = 7.5
+    player_momentum_quotient = 5.0
     bullet_angle = Geometry.vec2_angle(@player.aim_dir) + Numeric.rand((@player.aim_deviation * -1.0)..@player.aim_deviation)
     bullet_dir = Geometry.angle_vec2(bullet_angle)
     bullet = {
@@ -529,7 +560,7 @@ class Game
     # print dir
     @bullets << bullet
 
-    @player.aim_deviation += 0.5 * (3.0 / @player.aim_deviation)
+    @player.aim_deviation = @player.aim_deviation.lerp(10.0, 0.05)
 
     @player.vx += bullet_dir.x * 2.0 * -1
     @player.vy += bullet_dir.y * 2.0 * -1
@@ -575,13 +606,28 @@ class Game
   end
 
   def calc_effects
-    @effects.reject! {|e| e.type == :explosion and e.tick == 7}
-    @effects.each { |effect|
-      if effect[:type] == :explosion
+    @effects.reject! { |e| 
+      ((e[:type] == :explosion and e[:tick] >= 7) or
+      (e[:type] == :spark and e[:a] <= 0))
+    }
+    @effects.each do |effect|
+      case effect[:type]
+      when :explosion
         effect[:tick] += 1.0 * time_factor
         effect[:tile_x] = 32 * effect[:tick].floor
+      when :spark
+        effect[:x] += effect[:dx] * time_factor
+        effect[:y] += effect[:dy] * time_factor
+        effect[:dx] *= 1.0 - 0.05 * time_factor
+        effect[:dy] *= 1.0 - 0.05 * time_factor
+        effect[:r] = (effect[:r] - 0.5 * time_factor).clamp(0,255)
+        effect[:g] = (effect[:g] - 1.0 * time_factor).clamp(0,255)
+        effect[:b] = (effect[:b] - 1.0 * time_factor).clamp(0,255)
+        if effect[:dx].abs and effect[:dy].abs < 1.0
+          effect[:a] -= 5.0 * time_factor
+        end
       end
-    }
+    end
   end
 
   # do I want everything to tell the camera what to do
@@ -614,6 +660,7 @@ class Game
     # this is important to avoid scaling the UI with the scene.
     # cursor_world_rect = calc_cursor_in_scene
     outputs.watch DR.current_framerate
+    # outputs.watch @spawn_timer
     # outputs.watch cursor_world_rect
     # outputs.watch current_player_rect
     # guide_line_center = { 
