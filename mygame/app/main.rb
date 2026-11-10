@@ -36,7 +36,7 @@ class Game
     @time_factor = 1.0
     $squad_size = 8
     $squad_id = 0
-    @player = { x: 700, y: 500, w: 20, h: 20,
+    @player = { x: 0, y: 0, w: 20, h: 20,
                 anchor_x: 0.5,
                 anchor_y: 0.5,
                 path: 'sprites/circle/solid.png',
@@ -58,6 +58,7 @@ class Game
     @spawn_timer = 180
     @enemies = []
     @bullets = []
+    @effects = []
     $map_loaded = false
     @camera_matrix = nil
     @world_matrix = nil
@@ -70,8 +71,10 @@ class Game
     # generate_collision_test_map unless $map_loaded
     # generate_perlin_map unless $map_loaded
     generate_blank_map unless $map_loaded
+    @cursor_in_scene = calc_cursor_in_scene
     calc_player
     calc_enemies
+    calc_effects
     calc_camera
     render
     calc_game_over
@@ -311,7 +314,7 @@ class Game
     @bullets.each do |bullet|
       bullet_collision = Geometry.find_intersect_rect(bullet, @enemies)
       next if !bullet_collision
-
+      @effects << spawn_explosion(bullet_collision)
       @enemies.delete bullet_collision
       # bullet.kills ||= 0
       # bullet.kills += 1
@@ -325,6 +328,17 @@ class Game
 
     @player.health_perc = @player.health_perc.lerp(@player.health.fdiv(10), 0.1)
   end
+
+  def spawn_explosion ordinal
+    {
+      x: ordinal.x, y: ordinal.y, w: 32, h:32,
+      anchor_x: 0.5, anchor_y: 0.5,
+      path: 'sprites/misc/explosion-sheet.png',
+      tile_x: 0, tile_y: 0, tile_w: 32, tile_h: 32,
+      tick: 0, type: :explosion
+    }
+  end
+
 
   def move_enemies
     @enemies.each do |enemy|
@@ -363,8 +377,7 @@ class Game
   end
 
   def calc_player_aim
-    cursor_pos = calc_cursor_in_scene
-    dir = { x: cursor_pos.x - @player.x, y: cursor_pos.y - @player.y }
+    dir = { x: @cursor_in_scene.x - @player.x, y: @cursor_in_scene.y - @player.y }
     dir = Geometry.vec2_normalize dir
     @player.aim_dir = dir
   end
@@ -561,12 +574,27 @@ class Game
       radius: @player.w / 2 }
   end
 
+  def calc_effects
+    @effects.reject! {|e| e.type == :explosion and e.tick == 7}
+    @effects.each { |effect|
+      if effect[:type] == :explosion
+        effect[:tick] += 1.0 * time_factor
+        effect[:tile_x] = 32 * effect[:tick].floor
+      end
+    }
+  end
+
   # do I want everything to tell the camera what to do
   # ie camera behavior is emergent based on competing target weights
   # or do I create dedicated camera logic?
   def calc_camera
     @camera.target_x = @player.x
     @camera.target_y = @player.y
+
+    target_x_offset = (@cursor_in_scene.x - @player.x)
+    target_y_offset = (@cursor_in_scene.y - @player.y)
+    @camera.target_x += target_x_offset.fdiv(2.0)
+    @camera.target_y += target_y_offset.fdiv(2.0)
 
     # turning does the same thing, rotates the player, rotates the camera,
     # and invalidates the camera matrix
@@ -584,7 +612,7 @@ class Game
   def render
     # cursor in scene is important for calculations, but final UI elements should render ON TOP of scene
     # this is important to avoid scaling the UI with the scene.
-    cursor_world_rect = calc_cursor_in_scene
+    # cursor_world_rect = calc_cursor_in_scene
     outputs.watch DR.current_framerate
     # outputs.watch cursor_world_rect
     # outputs.watch current_player_rect
@@ -594,7 +622,7 @@ class Game
     #                       x2: cursor_pos.x, 
     #                       y2: cursor_pos.y
     #                     }
-    line_len = Geometry.distance({ x: @player.x, y: @player.y },cursor_world_rect)
+    line_len = Geometry.distance({ x: @player.x, y: @player.y },@cursor_in_scene)
 
     aim_angle = Geometry.vec2_angle(@player.aim_dir)
 
@@ -626,6 +654,7 @@ class Game
     camera_space_player = @camera.rect_to_camera_space(@player)
     outputs[:scene].sprites << $world.floor_tiles.map { |t| @camera.rect_to_camera_space(t)}
     # puts("#{@enemies.map { |e| e.getSprite}}")
+    outputs[:scene].sprites << @effects.map { |e| @camera.rect_to_camera_space(e)}
     outputs[:scene].primitives << camera_space_player
     outputs[:scene].primitives << @enemies.map { |e| @camera.rect_to_camera_space(e.getSprite) }
     # puts("#{outputs[:scene].primitives}")

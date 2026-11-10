@@ -1,23 +1,21 @@
 * EXCEPTION:
-* ERROR: :target_x= method missing on ~Camera~.
+* ERROR: :+ method missing on ~NilClass~.
 
-#+begin_src ~Camera#inspect~
-#<Camera:0x1f9d6edfec0 @target_pan_offset_y=0, @target_rotation=0.0, @target_y=0, @x=0, @rotation=0.0, @target_pan_offset_x=0, @target_x=0, @world_matrix={0=>{:x=>1.0, :y=>0.0, :z=>0.0}, 1=>{:x=>0.0, :y=>1.0, :z=>0.0}, 2=>{:x=>0.0, :y=>0.0, :z=>1.0}}, @scale=1.0, @target_scale=1.0, @y=0, @camera_matrix={0=>{:x=>1.0, :y=>0.0, :z=>0.0}, 1=>{:x=>0.0, :y=>1.0, :z=>0.0}, 2=>{:x=>0.0, :y=>0.0, :z=>1.0}}>
-#+end_src ~Camera#inspect~
+#+begin_src ~NilClass#inspect~
+nil
+#+end_src ~NilClass#inspect~
 
-** Did you mean?
-Here's a list of methods that kind of look like :target_x=.
-*** :target_x
-*** :target_y
+
 
 The method named
-  :target_x=
+  :+
 with args
-  [700.0]
-doesn't exist on [Camera, #<Class:#<Camera:0x1f9d6edfec0>>].
+  [1]
+doesn't exist on [NilClass, NilClassFalseClass].
 
 (suggestions above)
 ** Backtrace:
-*** app/main.rb:556:in calc_camera
-*** app/main.rb:74:in tick
-*** app/main.rb:671:in tick
+*** app/main.rb:580:in calc_effects
+*** app/main.rb:578:in calc_effects
+*** app/main.rb:77:in tick
+*** app/main.rb:711:in tick
