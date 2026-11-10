@@ -1,26 +1,33 @@
 * EXCEPTION:
-* ERROR: Geometry::vec2_scale for v 8.335359715702816 and scalar 0.8.
-* ERROR:
-** method_missing: x
-** instance:       8.335359715702816
-** on class:       Float
-** with modules:   [NumericDeprecated, ValueType, Comparable, PP::ObjectMixin, Kernel]
-** with values:    8.335359715702816
-** given args:     [[]]
-** exception:      can't define singleton
-** backtrace:
-app/main.rb:322:in kill_enemies
-app/main.rb:318:in kill_enemies
-app/main.rb:314:in kill_enemies
-app/main.rb:266:in calc_enemies
-app/main.rb:76:in tick
-app/main.rb:745:in tick
+* ERROR: :vec2_Scale method missing on ~Module~.
 
+#+begin_src ~Module#inspect~
+GTK::Geometry
+#+end_src ~Module#inspect~
 
+** Did you mean?
+Here's a list of methods that kind of look like :vec2_Scale.
+*** :vec2_add
+*** :vec2_angle
+*** :vec2_dot_product
+*** :vec2_magnitude
+*** :vec2_normal
+*** :vec2_normalize
+*** :vec2_scale
+*** :vec2_sub
+*** :vec2_subtract
+
+The method named
+  :vec2_Scale
+with args
+  [{:x=>-0.00820269494501861, :y=>-0.0493821795106101}, 0.95]
+doesn't exist on [Module].
+
+(suggestions above)
 ** Backtrace:
-*** app/main.rb:322:in kill_enemies
-*** app/main.rb:318:in kill_enemies
-*** app/main.rb:314:in kill_enemies
-*** app/main.rb:266:in calc_enemies
+*** app/pursuer.rb:55:in update
+*** app/main.rb:377:in move_enemies
+*** app/main.rb:376:in move_enemies
+*** app/main.rb:267:in calc_enemies
 *** app/main.rb:76:in tick
-*** app/main.rb:745:in tick
+*** app/main.rb:760:in tick

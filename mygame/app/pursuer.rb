@@ -13,6 +13,7 @@ class Pursuer
     @ai_state = "patrol"
     @anchor_x = 0.5
     @anchor_y = 0.5
+    @detection_radius = 16
     # puts("spawned #{@x}, #{@y}")
   end
 
@@ -45,8 +46,13 @@ class Pursuer
       @velocity.x -= angle_to_squad_center.vector_x * 0.0005
       @velocity.y -= angle_to_squad_center.vector_y * 0.0005
 
-      speed_factor = (15.0/Geometry.vec2_magnitude(@velocity)).clamp(0.0,1.0)
+      # close = getNearbyEnemies(game.enemies)
+      # avoid_vel_component = calcAvoidanceVel(close)
+      # @velocity = Geometry.vec2_add(@velocity, avoid_vel_component)
+
+      speed_factor = (10.0/Geometry.vec2_magnitude(@velocity)).clamp(0.0,1.0)
       @velocity = Geometry.vec2_scale(@velocity, speed_factor)
+      # @velocity = Geometry.vec2_scale(@velocity, 0.95)
 
       @x += @velocity.x * game.time_factor
       @y += @velocity.y * game.time_factor
@@ -79,6 +85,19 @@ class Pursuer
   end
 
   def getNearbyEnemies enemies
-    enemies.reject { |enemy| enemy.point_inside_circle?({x:@x,y:@y}, @w*2.0) }
+    enemies.reject { |enemy| !Geometry.point_inside_circle?(enemy, {x:@x,y:@y}, @detection_radius) }
+  end
+
+  def calcAvoidanceVel nearby
+    avoid_x = 0.0;
+    avoid_y = 0.0;
+    nearby.each do |enemy|
+      sqDist = (1.0/Geometry.distance({x:@x,y:@y}, enemy)).clamp(0,500)
+      avoid_x += (@x - enemy.x) * sqDist
+      avoid_y += (@y - enemy.y) * sqDist
+    end
+    avoid_x *= 0.05
+    avoid_y *= 0.05
+    return { x: avoid_x, y: avoid_y }
   end
 end
