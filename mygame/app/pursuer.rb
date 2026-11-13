@@ -10,10 +10,10 @@ class Pursuer
     @angle = -90.0
     @velocity = { x: 0.0, y: 0.0 }
     @squad = squad
-    @ai_state = "patrol"
+    @ai_state = "flock"
     @anchor_x = 0.5
     @anchor_y = 0.5
-    @avoidance_radius = 32
+    @avoidance_radius = 56
     # puts("spawned #{@x}, #{@y}")
   end
 
@@ -32,7 +32,7 @@ class Pursuer
   # TODO implement framework for state machine
   def update player, game
     case @ai_state
-    when "patrol"
+    when "flock"
       angle_to_player = Geometry.angle player, { x: @x, y: @y}
       # @angle = angle - 90
       @velocity.x -= angle_to_player.vector_x * 0.05
@@ -48,11 +48,8 @@ class Pursuer
 
       close = getNearbyEnemies(squad)
       avoid_vel_component = calcAvoidanceDir(close)
-      if avoid_vel_component
-        puts(avoid_vel_component)
-        avoid_vel_component = Geometry.vec2_scale(avoid_vel_component, 0.1)
-        @velocity = Geometry.vec2_add(@velocity, avoid_vel_component)
-      end
+      avoid_vel_component = Geometry.vec2_scale(avoid_vel_component, 0.05)
+      @velocity = Geometry.vec2_add(@velocity, avoid_vel_component)
 
       speed_factor = (10.0/Geometry.vec2_magnitude(@velocity)).clamp(0.0,1.0)
       @velocity = Geometry.vec2_scale(@velocity, speed_factor)
@@ -67,7 +64,7 @@ class Pursuer
   end
 
   def getSquad enemies
-    squad = enemies.reject {|enemy| enemy.squad != @squad }
+    squad = enemies.reject { |enemy| enemy.squad != @squad or enemy == self }
   end
 
   def getSquadVel squad
@@ -89,7 +86,7 @@ class Pursuer
   end
 
   def getNearbyEnemies enemies
-    enemies.reject { |enemy| !Geometry.point_inside_circle?(enemy, {x:@x,y:@y}, @avoidance_radius) or enemy == self }
+    enemies.reject { |enemy| !Geometry.point_inside_circle?(enemy, {x:@x,y:@y}, @avoidance_radius) }
   end
 
   def calcAvoidanceDir nearby

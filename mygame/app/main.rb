@@ -34,7 +34,7 @@ class Game
   def reset_game
     $world  = { w: 1280, h: 720, tiles: [] }
     @time_factor = 1.0
-    $squad_size = 12
+    $squad_size = 8
     $squad_id = 0
     @player = { x: 0, y: 0, w: 20, h: 20,
                 anchor_x: 0.5,
