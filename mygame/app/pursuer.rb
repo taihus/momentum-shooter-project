@@ -13,7 +13,7 @@ class Pursuer
     @ai_state = "patrol"
     @anchor_x = 0.5
     @anchor_y = 0.5
-    @detection_radius = 16
+    @avoidance_radius = 32
     # puts("spawned #{@x}, #{@y}")
   end
 
@@ -46,13 +46,17 @@ class Pursuer
       @velocity.x -= angle_to_squad_center.vector_x * 0.0005
       @velocity.y -= angle_to_squad_center.vector_y * 0.0005
 
-      # close = getNearbyEnemies(game.enemies)
-      # avoid_vel_component = calcAvoidanceVel(close)
-      # @velocity = Geometry.vec2_add(@velocity, avoid_vel_component)
+      close = getNearbyEnemies(squad)
+      avoid_vel_component = calcAvoidanceDir(close)
+      if avoid_vel_component
+        puts(avoid_vel_component)
+        avoid_vel_component = Geometry.vec2_scale(avoid_vel_component, 0.1)
+        @velocity = Geometry.vec2_add(@velocity, avoid_vel_component)
+      end
 
       speed_factor = (10.0/Geometry.vec2_magnitude(@velocity)).clamp(0.0,1.0)
       @velocity = Geometry.vec2_scale(@velocity, speed_factor)
-      # @velocity = Geometry.vec2_scale(@velocity, 0.95)
+      # @velocity = Geometry.vec2_scale(@velocity, 0.98)
 
       @x += @velocity.x * game.time_factor
       @y += @velocity.y * game.time_factor
@@ -85,19 +89,18 @@ class Pursuer
   end
 
   def getNearbyEnemies enemies
-    enemies.reject { |enemy| !Geometry.point_inside_circle?(enemy, {x:@x,y:@y}, @detection_radius) }
+    enemies.reject { |enemy| !Geometry.point_inside_circle?(enemy, {x:@x,y:@y}, @avoidance_radius) or enemy == self }
   end
 
-  def calcAvoidanceVel nearby
+  def calcAvoidanceDir nearby
     avoid_x = 0.0;
     avoid_y = 0.0;
+    return { x: avoid_x, y: avoid_y } if nearby.length == 0 
     nearby.each do |enemy|
-      sqDist = (1.0/Geometry.distance({x:@x,y:@y}, enemy)).clamp(0,500)
+      sqDist = @avoidance_radius.fdiv(Geometry.distance_squared({x:@x,y:@y}, enemy))
       avoid_x += (@x - enemy.x) * sqDist
       avoid_y += (@y - enemy.y) * sqDist
     end
-    avoid_x *= 0.05
-    avoid_y *= 0.05
-    return { x: avoid_x, y: avoid_y }
+    return Geometry.vec2_normalize({ x: avoid_x, y: avoid_y })
   end
 end
