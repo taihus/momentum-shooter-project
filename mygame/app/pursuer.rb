@@ -10,10 +10,14 @@ class Pursuer
     @angle = -90.0
     @velocity = { x: 0.0, y: 0.0 }
     @squad = squad
-    @ai_state = "flock"
+    @ai_state = :flock
     @anchor_x = 0.5
     @anchor_y = 0.5
-    @avoidance_radius = 56
+    @avoidance_radius = 64
+    @detection_range = 128
+    @detection_angle = 15 # half of cone
+    @disengage_angle = 90
+    @windup_time = 1.seconds
     # puts("spawned #{@x}, #{@y}")
   end
 
@@ -32,7 +36,7 @@ class Pursuer
   # TODO implement framework for state machine
   def update player, game
     case @ai_state
-    when "flock"
+    when :flock
       angle_to_player = Geometry.angle player, { x: @x, y: @y}
       # @angle = angle - 90
       @velocity.x -= angle_to_player.vector_x * 0.05
@@ -62,6 +66,13 @@ class Pursuer
       puts("oh no")
     end
   end
+
+  # def think player
+  #   case @ai_state
+  #   when :flock
+  #     angle_from_front = Geometry.angle(self, player)
+  #     if ( < )
+
 
   def getSquad enemies
     squad = enemies.reject { |enemy| enemy.squad != @squad or enemy == self }
