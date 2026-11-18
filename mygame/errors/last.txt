@@ -1,13 +1,9 @@
-* EXCEPTION:
-* ERROR: Exception while requiring app/main.rb.
-* ERROR: Exception while requiring app/pursuer.rb.
-** Failed to load app/pursuer.rb.
-line 98:32: syntax error, unexpected keyword_return
-
-
-
+* EXCEPTION: can't convert Integer to Hash
 ** Backtrace:
-*** app/main.rb:2
-** Backtrace:
-*** app/main.rb:2
-** Backtrace:
+*** app/pursuer.rb:105:in think
+*** app/pursuer.rb:39:in update
+*** app/main.rb:377:in move_enemies
+*** app/main.rb:376:in move_enemies
+*** app/main.rb:267:in calc_enemies
+*** app/main.rb:76:in tick
+*** app/main.rb:760:in tick

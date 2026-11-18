@@ -14,10 +14,11 @@ class Pursuer
     @anchor_x = 0.5
     @anchor_y = 0.5
     @avoidance_radius = 64
-    @detection_range = 128
-    @detection_angle = 15 # half of cone
+    @detection_range = 480
+    @detection_angle = 20 # half of cone
     @disengage_angle = 90
     @windup_time = 1.seconds
+    # @recovery_time = 1.seconds
     # puts("spawned #{@x}, #{@y}")
   end
 
@@ -35,6 +36,7 @@ class Pursuer
   # TODO update patrol to integrate boids behavior
   # TODO implement framework for state machine
   def update player, game
+    think player
     case @ai_state
     when :flock
       angle_to_player = Geometry.angle player, { x: @x, y: @y}
@@ -62,17 +64,57 @@ class Pursuer
       @x += @velocity.x * game.time_factor
       @y += @velocity.y * game.time_factor
       @angle = Geometry.vec2_angle(@velocity) - 90.0
+    when :windup
+      @windup_time -= 1
+      @angle = Geometry.angle({ x: @x, y: @y},player) - 90
+      @velocity = Geometry.vec2_scale(@velocity, 0.90)
+      @x += @velocity.x * game.time_factor
+      @y += @velocity.y * game.time_factor
+    when :charge
+      angle_to_player = Geometry.angle player, { x: @x, y: @y}
+      # @angle = angle - 90
+      @velocity.x -= angle_to_player.vector_x * 0.5
+      @velocity.y -= angle_to_player.vector_y * 0.5
+      @x += @velocity.x * game.time_factor
+      @y += @velocity.y * game.time_factor
+      @angle = angle_to_player + 90
+    when :recovery
+      # @angle = Geometry.angle player, { x: @x, y: @y}
+      @velocity = Geometry.vec2_scale(@velocity, 0.98)
+      @x += @velocity.x * game.time_factor
+      @y += @velocity.y * game.time_factor
     else
       puts("oh no")
+      puts("Updating with invalid state: #{@ai_state}")
     end
   end
 
-  # def think player
-  #   case @ai_state
-  #   when :flock
-  #     angle_from_front = Geometry.angle(self, player)
-  #     if ( < )
-
+  def think player
+    case @ai_state
+    when :flock
+      angle_from_front = Geometry.angle(self, player) - 90 - @angle
+      distance_to_player = Geometry.distance(player, { x: @x, y: @y})
+      if ( -@detection_angle < angle_from_front && 
+            angle_from_front < @detection_angle &&
+            distance_to_player < @detection_range)
+        @ai_state = :windup
+      end
+    when :windup
+      @ai_state = :charge if @windup_time <= 0
+    when :charge
+      windup_time = 1.seconds
+      angle_from_front = Geometry.angle(self, player) - 90 - @angle
+      if ( -@disengage_angle > angle_from_front ||
+            angle_from_front > @disengage_angle)
+          @ai_state = :recovery
+      end
+    when :recovery
+      @ai_state = :flock if Geometry.vec2_magnitude(@velocity) < 5
+    else
+      puts("ah fuck")
+      puts("Thinking with invalid state: #{@ai_state}")
+    end
+  end
 
   def getSquad enemies
     squad = enemies.reject { |enemy| enemy.squad != @squad or enemy == self }
