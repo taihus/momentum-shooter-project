@@ -1,7 +1,22 @@
-* EXCEPTION: can't convert Integer to Hash
+* EXCEPTION:
+* ERROR: :< method missing on ~NilClass~.
+
+#+begin_src ~NilClass#inspect~
+nil
+#+end_src ~NilClass#inspect~
+
+
+
+The method named
+  :<
+with args
+  [480]
+doesn't exist on [NilClass, NilClassFalseClass].
+
+(suggestions above)
 ** Backtrace:
-*** app/pursuer.rb:105:in think
-*** app/pursuer.rb:39:in update
+*** app/pursuer.rb:102:in think
+*** app/pursuer.rb:37:in update
 *** app/main.rb:377:in move_enemies
 *** app/main.rb:376:in move_enemies
 *** app/main.rb:267:in calc_enemies

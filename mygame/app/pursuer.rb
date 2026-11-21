@@ -17,7 +17,7 @@ class Pursuer
     @detection_range = 480
     @detection_angle = 20 # half of cone
     @disengage_angle = 90
-    @windup_time = 1.seconds
+    @windup_time = 0.8.seconds
     # @recovery_time = 1.seconds
     # puts("spawned #{@x}, #{@y}")
   end
@@ -33,8 +33,6 @@ class Pursuer
           }
   end
 
-  # TODO update patrol to integrate boids behavior
-  # TODO implement framework for state machine
   def update player, game
     think player
     case @ai_state
@@ -60,55 +58,64 @@ class Pursuer
       speed_factor = (10.0/Geometry.vec2_magnitude(@velocity)).clamp(0.0,1.0)
       @velocity = Geometry.vec2_scale(@velocity, speed_factor)
       # @velocity = Geometry.vec2_scale(@velocity, 0.98)
-
-      @x += @velocity.x * game.time_factor
-      @y += @velocity.y * game.time_factor
-      @angle = Geometry.vec2_angle(@velocity) - 90.0
+      # @angle = Geometry.vec2_angle(@velocity) - 90.0
+      @angle += Geometry.angle_delta(@angle,Geometry.vec2_angle(@velocity) - 90.0) * 0.1
     when :windup
       @windup_time -= 1
-      @angle = Geometry.angle({ x: @x, y: @y},player) - 90
-      @velocity = Geometry.vec2_scale(@velocity, 0.90)
-      @x += @velocity.x * game.time_factor
-      @y += @velocity.y * game.time_factor
+      # @angle = @angle.lerp(Geometry.angle({ x: @x, y: @y},player) - 90, 0.1).clamp_wrap(0,359)
+      @angle += Geometry.angle_delta(@angle,Geometry.angle({ x: @x, y: @y},player) - 90) * 0.1
+      @velocity = Geometry.vec2_scale(@velocity, 0.98)
     when :charge
       angle_to_player = Geometry.angle player, { x: @x, y: @y}
       # @angle = angle - 90
       @velocity.x -= angle_to_player.vector_x * 0.5
       @velocity.y -= angle_to_player.vector_y * 0.5
-      @x += @velocity.x * game.time_factor
-      @y += @velocity.y * game.time_factor
-      @angle = angle_to_player + 90
+      # @angle = angle_to_player + 90
+      @angle += Geometry.angle_delta(@angle,angle_to_player + 90) * 0.1
     when :recovery
       # @angle = Geometry.angle player, { x: @x, y: @y}
+      # @angle = @angle.lerp(Geometry.vec2_angle(@velocity) - 90.0, 0.1).clamp_wrap(0,359)
+      @angle += Geometry.angle_delta(@angle,Geometry.angle({ x: @x, y: @y},player) - 90) * 0.1
       @velocity = Geometry.vec2_scale(@velocity, 0.98)
-      @x += @velocity.x * game.time_factor
-      @y += @velocity.y * game.time_factor
     else
       puts("oh no")
       puts("Updating with invalid state: #{@ai_state}")
     end
+    # no, do not angle towards velocity, angle towards *acceleration*
+    @x += @velocity.x * game.time_factor
+    @y += @velocity.y * game.time_factor
   end
 
   def think player
+    angle_from_front = Geometry.angle(self, player) - 90 - @angle
+    distance_to_player = Geometry.distance(player, { x: @x, y: @y})
     case @ai_state
     when :flock
-      angle_from_front = Geometry.angle(self, player) - 90 - @angle
-      distance_to_player = Geometry.distance(player, { x: @x, y: @y})
       if ( -@detection_angle < angle_from_front && 
             angle_from_front < @detection_angle &&
             distance_to_player < @detection_range)
         @ai_state = :windup
       end
     when :windup
+      # if ( -@detection_angle < angle_from_front && 
+      #       angle_from_front < @detection_angle &&
+      #       distance_to_player < @detection_range)
+      #   @ai_state = :flock
+      #   windup_time = 0.5.seconds
+      # end
       @ai_state = :charge if @windup_time <= 0
     when :charge
-      windup_time = 1.seconds
-      angle_from_front = Geometry.angle(self, player) - 90 - @angle
+      windup_time = 0.5.seconds
       if ( -@disengage_angle > angle_from_front ||
             angle_from_front > @disengage_angle)
           @ai_state = :recovery
       end
     when :recovery
+      if ( -@detection_angle < angle_from_front && 
+            angle_from_front < @detection_angle &&
+            distance_to_player < @detection_range)
+        @ai_state = :windup
+      end
       @ai_state = :flock if Geometry.vec2_magnitude(@velocity) < 5
     else
       puts("ah fuck")
