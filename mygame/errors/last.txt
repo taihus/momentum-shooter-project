@@ -1,9 +1,26 @@
-* EXCEPTION: can't convert Integer to Hash
+* EXCEPTION:
+* ERROR: Geometry::vec2_angle for v 93.99999999999998.
+* ERROR:
+** method_missing: y
+** instance:       93.99999999999998
+** on class:       Float
+** with modules:   [NumericDeprecated, ValueType, Comparable, PP::ObjectMixin, Kernel]
+** with values:    93.99999999999998
+** given args:     [[]]
+** exception:      can't define singleton
+** backtrace:
+app/shooter.rb:43:in update
+app/main.rb:379:in move_enemies
+app/main.rb:378:in move_enemies
+app/main.rb:268:in calc_enemies
+app/main.rb:77:in tick
+app/main.rb:762:in tick
+
+
 ** Backtrace:
-*** app/pursuer.rb:105:in think
-*** app/pursuer.rb:39:in update
-*** app/main.rb:377:in move_enemies
-*** app/main.rb:376:in move_enemies
-*** app/main.rb:267:in calc_enemies
-*** app/main.rb:76:in tick
-*** app/main.rb:760:in tick
+*** app/shooter.rb:43:in update
+*** app/main.rb:379:in move_enemies
+*** app/main.rb:378:in move_enemies
+*** app/main.rb:268:in calc_enemies
+*** app/main.rb:77:in tick
+*** app/main.rb:762:in tick

@@ -1,5 +1,6 @@
 require 'app/camera.rb'
 require 'app/pursuer.rb'
+require 'app/shooter.rb'
 
 # Using samples/99_genre_arcade/twinstick as a starting point
 # samples/07_advanced_rendering/07_simple_camera
@@ -34,7 +35,7 @@ class Game
   def reset_game
     $world  = { w: 1280, h: 720, tiles: [] }
     @time_factor = 1.0
-    $squad_size = 8
+    $squad_size = 4
     $squad_id = 0
     @player = { x: 0, y: 0, w: 20, h: 20,
                 anchor_x: 0.5,
@@ -274,12 +275,13 @@ class Game
     angle = rand 360
     enemy_xpos = @player.x + angle.vector_x * 1000
     enemy_ypos = @player.y + angle.vector_y * 1000
-    # puts("spawning #{enemy_xpos}, #{enemy_ypos}")
+    puts("spawning #{enemy_xpos}, #{enemy_ypos}")
     ordinal = {x: enemy_xpos, y: enemy_ypos}
     num_spawned = 0
     angle += 90
     $squad_size.times do
-      new_enemy = Pursuer.new(ordinal, $squad_id)
+      # new_enemy = Pursuer.new(ordinal, $squad_id)
+      new_enemy = Shooter.new(ordinal, $squad_id)
       @enemies << new_enemy
       # puts("spawning #{new_enemy}")
       delta_x = 50.0 * Numeric.rand(1..4) * angle.vector_x
@@ -653,9 +655,7 @@ class Game
     @camera.update_camera!
   end
 
-  
-  # TODO position camera based on cursor and player, not just player
-  def render
+    def render
     # cursor in scene is important for calculations, but final UI elements should render ON TOP of scene
     # this is important to avoid scaling the UI with the scene.
     # cursor_world_rect = calc_cursor_in_scene

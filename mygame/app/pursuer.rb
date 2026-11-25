@@ -33,8 +33,6 @@ class Pursuer
           }
   end
 
-  # TODO update patrol to integrate boids behavior
-  # TODO implement framework for state machine
   def update player, game
     think player
     case @ai_state
@@ -97,7 +95,6 @@ class Pursuer
       if ( -@detection_angle < angle_from_front && 
             angle_from_front < @detection_angle &&
             distance_to_player < @detection_range)
-            jhlkhlkhjlkjhlkj
         @ai_state = :windup
       end
     when :windup
