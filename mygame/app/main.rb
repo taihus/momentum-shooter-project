@@ -320,13 +320,13 @@ class Game
       Numeric.rand(1..5).times do 
         bullet_vel = { x: bullet.vx, y: bullet.vy }
         spark_angle = Geometry.vec2_angle(bullet_vel) + Numeric.rand(-20.0..20.0)
-        spark_speed = Geometry.vec2_magnitude(bullet_vel) * Numeric.rand(0.05..0.15)
+        spark_speed = Geometry.vec2_magnitude(bullet_vel) * Numeric.rand(0.15..0.25)
         @effects << spawn_spark(bullet, spark_angle, spark_speed)
       end
       Numeric.rand(2..6).times do 
-        spark_angle = Geometry.vec2_angle(bullet_collision.velocity) + Numeric.rand(-10.0..10.0)
-        spark_speed = Geometry.vec2_magnitude(bullet_collision.velocity) * Numeric.rand(0.7..0.8)
-        @effects << spawn_chunk(bullet_collision, spark_angle, spark_speed)
+        chunk_angle = Geometry.vec2_angle(bullet_collision.velocity) + Numeric.rand(-10.0..10.0)
+        chunk_speed = Geometry.vec2_magnitude(bullet_collision.velocity) * Numeric.rand(0.7..0.8)
+        @effects << spawn_chunk(bullet_collision, chunk_angle, chunk_speed)
       end
       @enemies.delete bullet_collision
       # bullet.kills ||= 0
@@ -353,13 +353,17 @@ class Game
   end
 
   def spawn_spark ordinal, angle, speed
+    spark_size = 4 * rand() + 1
+    stretch_factor = 2
+    width = spark_size * speed * stretch_factor
     {
-      x: ordinal.x, y: ordinal.y, w: 5 * rand() + 1, h: 5 * rand() + 1,
+      x: ordinal.x + angle.vector_x * width * 0.25, y: ordinal.y + angle.vector_y * width * 0.25, w: spark_size * speed * stretch_factor, h: spark_size,
       dx: speed * angle.vector_x, dy: speed * angle.vector_y,
+      angle: angle,
       r: 255, g: 125 + rand(111), b: rand(51), a: 255,
-      anchor_x: 0.5, anchor_y: 0.5,
+      anchor_x: 0.5, anchor_y: 0.0, angle_anchor_y: 0.0,
       path: 'sprites/circle/solid.png',
-      type: :spark
+      type: :spark, stretch_factor: stretch_factor, spark_size: spark_size
     }
   end
 
@@ -370,7 +374,7 @@ class Game
       r: 125, g: rand(111), b: rand(111), a: 255,
       anchor_x: 0.5, anchor_y: 0.5,
       path: 'sprites/circle/solid.png',
-      type: :spark
+      type: :debris
     }
   end
 
@@ -610,7 +614,8 @@ class Game
   def calc_effects
     @effects.reject! { |e| 
       ((e[:type] == :explosion and e[:tick] >= 7) or
-      (e[:type] == :spark and e[:a] <= 0))
+      (e[:type] == :spark and e[:a] <= 0) or
+      (e[:type] == :debris and e[:a] <= 0))
     }
     @effects.each do |effect|
       case effect[:type]
@@ -620,8 +625,20 @@ class Game
       when :spark
         effect[:x] += effect[:dx] * time_factor
         effect[:y] += effect[:dy] * time_factor
-        effect[:dx] *= 1.0 - 0.05 * time_factor
-        effect[:dy] *= 1.0 - 0.05 * time_factor
+        effect[:dx] *= 1.0 - 0.1 * time_factor
+        effect[:dy] *= 1.0 - 0.1 * time_factor
+        effect[:w] = effect[:spark_size] * Geometry.vec2_magnitude({x:effect[:dx], y:effect[:dy]}) * effect[:stretch_factor]
+        effect[:r] = (effect[:r] - 0.5 * time_factor).clamp(0,255)
+        effect[:g] = (effect[:g] - 1.0 * time_factor).clamp(0,255)
+        effect[:b] = (effect[:b] - 1.0 * time_factor).clamp(0,255)
+        if effect[:dx].abs < 1.0 and effect[:dy].abs < 1.0
+          effect[:a] -= 5.0 * time_factor
+        end
+      when :debris
+        effect[:x] += effect[:dx] * time_factor
+        effect[:y] += effect[:dy] * time_factor
+        effect[:dx] *= 1.0 - 0.1 * time_factor
+        effect[:dy] *= 1.0 - 0.1 * time_factor
         effect[:r] = (effect[:r] - 0.5 * time_factor).clamp(0,255)
         effect[:g] = (effect[:g] - 1.0 * time_factor).clamp(0,255)
         effect[:b] = (effect[:b] - 1.0 * time_factor).clamp(0,255)

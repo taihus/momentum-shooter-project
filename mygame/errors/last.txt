@@ -1,26 +1,20 @@
 * EXCEPTION:
-* ERROR: Geometry::vec2_angle for v 93.99999999999998.
-* ERROR:
-** method_missing: y
-** instance:       93.99999999999998
-** on class:       Float
-** with modules:   [NumericDeprecated, ValueType, Comparable, PP::ObjectMixin, Kernel]
-** with values:    93.99999999999998
-** given args:     [[]]
-** exception:      can't define singleton
-** backtrace:
-app/shooter.rb:43:in update
-app/main.rb:379:in move_enemies
-app/main.rb:378:in move_enemies
-app/main.rb:268:in calc_enemies
-app/main.rb:77:in tick
-app/main.rb:762:in tick
+* ERROR: Geometry::vec2_angle for v .
+* ERROR: :y method missing on ~NilClass~.
 
+#+begin_src ~NilClass#inspect~
+nil
+#+end_src ~NilClass#inspect~
+
+
+
+The method named
+  :y
+doesn't exist on [NilClass, NilClassFalseClass].
+
+(suggestions above)
 
 ** Backtrace:
-*** app/shooter.rb:43:in update
-*** app/main.rb:379:in move_enemies
-*** app/main.rb:378:in move_enemies
-*** app/main.rb:268:in calc_enemies
-*** app/main.rb:77:in tick
-*** app/main.rb:762:in tick
+*** app/main.rb:691:in render
+*** app/main.rb:80:in tick
+*** app/main.rb:777:in tick
