@@ -23,7 +23,7 @@ require 'app/shooter.rb'
 
 class Game
   attr_dr
-  attr_accessor :time_factor, :world, :enemies
+  attr_accessor :time_factor, :world, :enemies, :bullets
 
   def initialize args
     # @on_screen_gamepad_left = OnScreenGamepad.new args.inputs, side: :left
@@ -75,6 +75,7 @@ class Game
     @cursor_in_scene = calc_cursor_in_scene
     calc_player
     calc_enemies
+    calc_attacks
     calc_effects
     calc_camera
     render
@@ -264,7 +265,6 @@ class Game
 
   def calc_enemies
     spawn_enemies
-    kill_enemies
     move_enemies
   end
 
@@ -275,7 +275,7 @@ class Game
     angle = rand 360
     enemy_xpos = @player.x + angle.vector_x * 1000
     enemy_ypos = @player.y + angle.vector_y * 1000
-    puts("spawning #{enemy_xpos}, #{enemy_ypos}")
+    # puts("spawning #{enemy_xpos}, #{enemy_ypos}")
     ordinal = {x: enemy_xpos, y: enemy_ypos}
     num_spawned = 0
     angle += 90
@@ -300,87 +300,11 @@ class Game
     # }
   end
 
-  def kill_enemies
-    enemy_collision = Geometry.find_intersect_rect(@player, @enemies)
-    if enemy_collision
-      @enemies.delete enemy_collision
-      @player.health -= 1
-    end
-    # @enemies.each do |enemy|
-    #   if Geometry.intersect_rect?(@player, enemy.getRect)
-    #     @enemies.delete enemy
-    #     @player.health -= 1
-    #   end
-    # end
-
-    @bullets.each do |bullet|
-      bullet_collision = Geometry.find_intersect_rect(bullet, @enemies)
-      next if !bullet_collision
-      @effects << spawn_explosion(bullet_collision)
-      Numeric.rand(1..5).times do 
-        bullet_vel = { x: bullet.vx, y: bullet.vy }
-        spark_angle = Geometry.vec2_angle(bullet_vel) + Numeric.rand(-20.0..20.0)
-        spark_speed = Geometry.vec2_magnitude(bullet_vel) * Numeric.rand(0.15..0.25)
-        @effects << spawn_spark(bullet, spark_angle, spark_speed)
-      end
-      Numeric.rand(2..6).times do 
-        chunk_angle = Geometry.vec2_angle(bullet_collision.velocity) + Numeric.rand(-10.0..10.0)
-        chunk_speed = Geometry.vec2_magnitude(bullet_collision.velocity) * Numeric.rand(0.7..0.8)
-        @effects << spawn_chunk(bullet_collision, chunk_angle, chunk_speed)
-      end
-      @enemies.delete bullet_collision
-      # bullet.kills ||= 0
-      # bullet.kills += 1
-      bullet.killed ||= true
-      # @player.score += bullet.kills
-      # @spawn_timer -= 3.0
-      # @player.health += 1 if @player.health < 10 && bullet.kills > 1
-      # @time_factor = 0.0
-    end
-    @bullets.reject!{ |bullet| bullet.killed }
-
-    @player.health_perc = @player.health_perc.lerp(@player.health.fdiv(10), 0.1)
-  end
-
-  def spawn_explosion ordinal
-    {
-      x: ordinal.x, y: ordinal.y, w: 32, h:32,
-      anchor_x: 0.5, anchor_y: 0.5,
-      path: 'sprites/misc/explosion-sheet.png',
-      tile_x: 0, tile_y: 0, tile_w: 32, tile_h: 32,
-      tick: 0, type: :explosion
-    }
-  end
-
-  def spawn_spark ordinal, angle, speed
-    spark_size = 4 * rand() + 1
-    stretch_factor = 2
-    width = spark_size * speed * stretch_factor
-    {
-      x: ordinal.x + angle.vector_x * width * 0.25, y: ordinal.y + angle.vector_y * width * 0.25, w: spark_size * speed * stretch_factor, h: spark_size,
-      dx: speed * angle.vector_x, dy: speed * angle.vector_y,
-      angle: angle,
-      r: 255, g: 125 + rand(111), b: rand(51), a: 255,
-      anchor_x: 0.5, anchor_y: 0.0, angle_anchor_y: 0.0,
-      path: 'sprites/circle/solid.png',
-      type: :spark, stretch_factor: stretch_factor, spark_size: spark_size
-    }
-  end
-
-  def spawn_chunk ordinal, angle, speed
-    {
-      x: ordinal.x, y: ordinal.y, w: 10, h:10,
-      dx: speed * angle.vector_x, dy: speed * angle.vector_y,
-      r: 125, g: rand(111), b: rand(111), a: 255,
-      anchor_x: 0.5, anchor_y: 0.5,
-      path: 'sprites/circle/solid.png',
-      type: :debris
-    }
-  end
-
   def move_enemies
     @enemies.each do |enemy|
       enemy.update @player, $game
+      enemy.x += enemy.velocity.x * @time_factor
+      enemy.y += enemy.velocity.y * @time_factor
     end
   end
 
@@ -411,13 +335,12 @@ class Game
     calc_above
     move_player
     fire_player
-    move_player_bullets
   end
 
   def calc_player_aim
     dir = { x: @cursor_in_scene.x - @player.x, y: @cursor_in_scene.y - @player.y }
     dir = Geometry.vec2_normalize dir
-    @player.aim_dir = dir
+    @player.aim_dir = dir unless dir == nil
   end
   
   def calc_player_rect
@@ -550,7 +473,7 @@ class Game
       w: 5, h: 5, path: "sprites/circle/solid.png", r: 232, g: 232, b: 232,
       vx: bullet_dir.x * bullet_speed + @player.vx / player_momentum_quotient,
       vy: bullet_dir.y * bullet_speed + @player.vy / player_momentum_quotient,
-      lifetime: 3.seconds
+      lifetime: 3.seconds, faction: :player
     }
     bullet_vel = { x: bullet.vx, y: bullet.vy }
     bullet_speed = Geometry.vec2_magnitude(bullet_vel)
@@ -574,7 +497,12 @@ class Game
     @player.cooldown = 5
   end
 
-  def move_player_bullets
+  def calc_attacks
+    move_bullets
+    damage_calc
+  end
+
+  def move_bullets
     @bullets.each do |bullet|
       bullet.x += bullet.vx * @time_factor
       bullet.y += bullet.vy * @time_factor
@@ -597,6 +525,66 @@ class Game
       # bullet.tracer.rotation = (bullet.tracer.angle + 90).to_radians
       bullet.tracer.w = 2.0 * bullet_speed
       bullet.lifetime -= 1 * time_factor
+    end
+  end
+
+  def damage_calc
+    enemy_collision = Geometry.find_intersect_rect(@player, (@enemies.reject { |e| e.is_a? Shooter } ))
+    if enemy_collision
+      @enemies.delete enemy_collision
+      @player.health -= 1
+    end
+    # @enemies.each do |enemy|
+    #   if Geometry.intersect_rect?(@player, enemy.getRect)
+    #     @enemies.delete enemy
+    #     @player.health -= 1
+    #   end
+    # end
+
+    @bullets.each do |bullet|
+      if bullet.faction == :player
+        enemy_death_loc = Geometry.find_intersect_rect(bullet, @enemies)
+        next if !enemy_death_loc
+        @effects << spawn_explosion(enemy_death_loc)
+        Numeric.rand(3..5).times do 
+          bullet_vel = { x: bullet.vx, y: bullet.vy }
+          spark_angle = Geometry.vec2_angle(bullet_vel) + Numeric.rand(-20.0..20.0)
+          spark_speed = Geometry.vec2_magnitude(bullet_vel) * Numeric.rand(0.15..0.25)
+          @effects << spawn_spark(bullet, spark_angle, spark_speed)
+        end
+        spawn_enemy_debris enemy_death_loc
+        @enemies.delete enemy_death_loc
+        # bullet.kills ||= 0
+        # bullet.kills += 1
+        bullet.killed ||= true
+        # @player.score += bullet.kills
+        # @spawn_timer -= 3.0
+        # @player.health += 1 if @player.health < 10 && bullet.kills > 1
+        # @time_factor = 0.0
+      elsif bullet.faction == :enemy
+        player_damage_loc = Geometry.find_intersect_rect(bullet, @player)
+        next if !player_damage_loc
+
+        Numeric.rand(3..5).times do 
+          bullet_vel = { x: bullet.vx, y: bullet.vy }
+          spark_angle = Geometry.vec2_angle(bullet_vel) + Numeric.rand(-20.0..20.0)
+          spark_speed = Geometry.vec2_magnitude(bullet_vel) * Numeric.rand(0.15..0.25)
+          @effects << spawn_spark(bullet, spark_angle, spark_speed)
+        end
+        bullet.killed ||= true
+        @player.health -= 1
+      end
+    end
+    @bullets.reject!{ |bullet| bullet.killed }
+
+    @player.health_perc = @player.health_perc.lerp(@player.health.fdiv(10), 0.1)
+  end
+
+  def spawn_enemy_debris enemy_death_loc
+    Numeric.rand(2..6).times do 
+      chunk_angle = Geometry.vec2_angle(enemy_death_loc.velocity) + Numeric.rand(-10.0..10.0)
+      chunk_speed = Geometry.vec2_magnitude(enemy_death_loc.velocity) * Numeric.rand(0.7..0.8)
+      @effects << spawn_chunk(enemy_death_loc, chunk_angle, chunk_speed)
     end
   end
 
@@ -632,7 +620,10 @@ class Game
         effect[:g] = (effect[:g] - 1.0 * time_factor).clamp(0,255)
         effect[:b] = (effect[:b] - 1.0 * time_factor).clamp(0,255)
         if effect[:dx].abs < 1.0 and effect[:dy].abs < 1.0
-          effect[:a] -= 5.0 * time_factor
+          # effect[:a] -= 5.0 * time_factor
+          effect[:a] = effect[:a].lerp(0, 0.08 * time_factor)
+        else
+          effect[:a] = effect[:a].lerp(0, 0.02 * time_factor)
         end
       when :debris
         effect[:x] += effect[:dx] * time_factor
@@ -647,6 +638,42 @@ class Game
         end
       end
     end
+  end
+
+  def spawn_explosion ordinal
+    {
+      x: ordinal.x, y: ordinal.y, w: 32, h:32,
+      anchor_x: 0.5, anchor_y: 0.5,
+      path: 'sprites/misc/explosion-sheet.png',
+      tile_x: 0, tile_y: 0, tile_w: 32, tile_h: 32,
+      tick: 0, type: :explosion
+    }
+  end
+
+  def spawn_spark ordinal, angle, speed
+    spark_size = 4 * rand() + 1
+    stretch_factor = 2
+    width = spark_size * speed * stretch_factor
+    {
+      x: ordinal.x + angle.vector_x * width * 0.25, y: ordinal.y + angle.vector_y * width * 0.25, w: spark_size * speed * stretch_factor, h: spark_size,
+      dx: speed * angle.vector_x, dy: speed * angle.vector_y,
+      angle: angle,
+      r: 255, g: 125 + rand(111), b: rand(51), a: 255,
+      anchor_x: 0.5, anchor_y: 0.0, angle_anchor_y: 0.0,
+      path: 'sprites/circle/solid.png',
+      type: :spark, stretch_factor: stretch_factor, spark_size: spark_size
+    }
+  end
+
+  def spawn_chunk ordinal, angle, speed
+    {
+      x: ordinal.x, y: ordinal.y, w: 10, h:10,
+      dx: speed * angle.vector_x, dy: speed * angle.vector_y,
+      r: 125, g: rand(111), b: rand(111), a: 255,
+      anchor_x: 0.5, anchor_y: 0.5,
+      path: 'sprites/circle/solid.png',
+      type: :debris
+    }
   end
 
   # do I want everything to tell the camera what to do

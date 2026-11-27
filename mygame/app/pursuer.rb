@@ -1,6 +1,6 @@
 class Pursuer
-  attr_accessor :x, :y, :w, :h, :angle
-  attr_reader :anchor_x, :anchor_y, :squad, :velocity, :path
+  attr_accessor :x, :y, :w, :h, :angle, :velocity
+  attr_reader :anchor_x, :anchor_y, :squad, :path
 
   def initialize ordinal, squad
     @x = ordinal.x
@@ -82,8 +82,6 @@ class Pursuer
       puts("Updating with invalid state: #{@ai_state}")
     end
     # no, do not angle towards velocity, angle towards *acceleration*
-    @x += @velocity.x * game.time_factor
-    @y += @velocity.y * game.time_factor
   end
 
   def think player
